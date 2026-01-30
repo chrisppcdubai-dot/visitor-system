@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Registration System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Work+Sans:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0a0a0a;
+            --secondary: #1a1a1a;
+            --accent: #00ff88;
+            --accent-dim: #00cc6a;
+            --danger: #ff4444;
+            --warning: #ffaa00;
+            --text: #ffffff;
+            --text-dim: #a0a0a0;
+            --border: #2a2a2a;
+            --card-bg: #151515;
+        }
+
+        body {
+            font-family: 'Work Sans', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 136, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--text) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-tab {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            transition: left 0.5s;
+        }
+
+        .nav-tab:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .nav-tab:hover::before {
+            left: 100%;
+        }
+
+        .nav-tab.active {
+            background: var(--accent);
+            color: var(--primary);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Work Sans', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+            background: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: var(--primary);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text);
+            box-shadow: none;
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+            box-shadow: none;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: var(--text);
+        }
+
+        .qr-display {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: var(--card-bg);
+            border: 2px dashed var(--accent);
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+
+        .qr-display canvas {
+            margin: 1rem auto;
+            border: 4px solid var(--accent);
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .visitor-badge {
+            width: 400px;
+            height: 250px;
+            background: white;
+            border: 2px solid #000;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 2rem auto;
+            font-family: Arial, sans-serif;
+            color: #000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .badge-header {
+            background: #2a2a2a;
+            color: white;
+            padding: 8px 12px;
+            margin: -16px -16px 12px -16px;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .badge-title {
+            font-size: 16px;
+        }
+
+        .badge-datetime {
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .badge-content {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .badge-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .badge-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 4px;
+        }
+
+        .badge-company {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .badge-host {
+            font-size: 16px;
+            font-weight: 600;
+            color: #000;
+        }
+
+        .badge-host-company {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .badge-qr {
+            width: 100px;
+            height: 100px;
+        }
+
+        .badge-qr canvas {
+            border: 2px solid #000;
+            border-radius: 4px;
+        }
+
+        .badge-footer {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #ddd;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+
+        .visitor-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .visitor-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 1.25rem;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .visitor-item:hover {
+            border-left-color: var(--accent-dim);
+            transform: translateX(4px);
+        }
+
+        .visitor-item.checked-out {
+            border-left-color: var(--text-dim);
+            opacity: 0.7;
+        }
+
+        .visitor-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .visitor-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .detail-item {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-in {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .status-out {
+            background: var(--text-dim);
+            color: var(--primary);
+        }
+
+        .login-form {
+            max-width: 400px;
+            margin: 4rem auto;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .alert-success {
+            background: rgba(0, 255, 136, 0.1);
+            border-left-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .alert-error {
+            background: rgba(255, 68, 68, 0.1);
+            border-left-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .alert-warning {
+            background: rgba(255, 170, 0, 0.1);
+            border-left-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            transform: rotate(90deg);
+        }
+
+        .print-button {
+            margin-top: 1rem;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .visitor-badge, .visitor-badge * {
+                visibility: visible;
+            }
+            .visitor-badge {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+
+            .visitor-badge {
+                width: 340px;
+                height: 220px;
+                padding: 12px;
+            }
+
+            .badge-name {
+                font-size: 16px;
+            }
+
+            .badge-qr {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Visitor Registration System</h1>
+            <p class="subtitle">Secure Check-In & Check-Out</p>
+        </header>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('checkin')">Check In</button>
+            <button class="nav-tab" onclick="switchTab('checkout')">Check Out</button>
+            <button class="nav-tab" onclick="switchTab('admin')">Admin</button>
+            <button class="nav-tab" onclick="switchTab('qr')">QR Code</button>
+        </div>
+
+        <!-- Check-In Tab -->
+        <div id="checkin" class="tab-content active">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Visitor Check-In</h2>
+                <div id="checkinAlert"></div>
+                <form id="checkinForm">
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" id="fullName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number *</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="company">Company/Organization *</label>
+                        <input type="text" id="company" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="hostName">Person/Department Visiting *</label>
+                        <input type="text" id="hostName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="hostCompany">Host's Company/Department</label>
+                        <input type="text" id="hostCompany">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="purpose">Purpose of Visit *</label>
+                        <textarea id="purpose" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehicle">Vehicle Details (Optional)</label>
+                        <input type="text" id="vehicle" placeholder="e.g., Toyota Camry, Plate: ABC123">
+                    </div>
+                    
+                    <button type="submit" class="btn">Check In & Generate Badge</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Check-Out Tab -->
+        <div id="checkout" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Visitor Check-Out</h2>
+                <div id="checkoutAlert"></div>
+                <p style="color: var(--text-dim); margin-bottom: 1.5rem;">Scan the QR code on your visitor badge to check out.</p>
+                <div class="form-group">
+                    <label for="checkoutId">Or Enter Visitor ID</label>
+                    <input type="text" id="checkoutId" placeholder="e.g., VIS-123456">
+                </div>
+                <button onclick="checkOutVisitor()" class="btn">Check Out</button>
+            </div>
+        </div>
+
+        <!-- Admin Tab -->
+        <div id="admin" class="tab-content">
+            <div id="adminLogin" class="login-form card">
+                <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; text-align: center;">Admin Login</h2>
+                <div id="loginAlert"></div>
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password">
+                </div>
+                <button onclick="adminLogin()" class="btn" style="width: 100%;">Login</button>
+                <p style="color: var(--text-dim); margin-top: 1rem; text-align: center; font-size: 0.85rem;">Default password: admin123</p>
+            </div>
+
+            <div id="adminPanel" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="currentVisitors">0</div>
+                        <div class="stat-label">Currently In</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="todayVisitors">0</div>
+                        <div class="stat-label">Today's Visitors</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalVisitors">0</div>
+                        <div class="stat-label">Total Visitors</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Current Visitors</h2>
+                    <div id="currentVisitorsList" class="visitor-list"></div>
+                </div>
+
+                <div class="card">
+                    <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Visitor History</h2>
+                    <div class="action-buttons">
+                        <button onclick="exportToExcel()" class="btn btn-secondary">Export to Excel</button>
+                        <button onclick="clearHistory()" class="btn btn-danger">Clear History</button>
+                        <button onclick="checkEndOfDay()" class="btn btn-secondary">Check End of Day</button>
+                    </div>
+                    <div id="visitorHistory" class="visitor-list" style="margin-top: 1.5rem;"></div>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button onclick="adminLogout()" class="btn btn-secondary">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Code Tab -->
+        <div id="qr" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; text-align: center;">Universal Check-In QR Code</h2>
+                <p style="color: var(--text-dim); margin-bottom: 1.5rem; text-align: center;">Print this QR code and display it at your entrance. Visitors can scan it to check in.</p>
+                <div class="qr-display">
+                    <div id="universalQR"></div>
+                    <p style="margin-top: 1rem; color: var(--text-dim);">Scan to access check-in form</p>
+                </div>
+                <div style="text-align: center;">
+                    <button onclick="window.print()" class="btn btn-secondary">Print QR Code</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badge Preview Modal -->
+    <div id="badgeModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeBadgeModal()">×</button>
+            <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; text-align: center;">Visitor Badge</h2>
+            <div id="badgePreview"></div>
+            <div style="text-align: center;" class="print-button">
+                <button onclick="printBadge()" class="btn">Print Badge</button>
+                <button onclick="closeBadgeModal()" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QRCode Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script>
+        // Data Storage
+        let visitors = JSON.parse(localStorage.getItem('visitors')) || [];
+        let isAdminLoggedIn = false;
+        const ADMIN_PASSWORD = 'admin123';
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', function() {
+            generateUniversalQR();
+            updateStats();
+            checkForURLParams();
+        });
+
+        // Tab Switching
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const navTabs = document.querySelectorAll('.nav-tab');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            navTabs.forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Generate Universal QR Code
+        function generateUniversalQR() {
+            const qrDiv = document.getElementById('universalQR');
+            qrDiv.innerHTML = '';
+            
+            const url = window.location.href.split('?')[0] + '?action=checkin';
+            
+            new QRCode(qrDiv, {
+                text: url,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Check for URL parameters
+        function checkForURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const visitorId = urlParams.get('id');
+
+            if (action === 'checkin') {
+                switchTab('checkin');
+                document.querySelector('[onclick*="checkin"]').classList.add('active');
+            } else if (action === 'checkout' && visitorId) {
+                switchTab('checkout');
+                document.querySelector('[onclick*="checkout"]').classList.add('active');
+                document.getElementById('checkoutId').value = visitorId;
+                checkOutVisitor();
+            }
+        }
+
+        // Check-In Form Submission
+        document.getElementById('checkinForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const visitor = {
+                id: 'VIS-' + Date.now(),
+                fullName: document.getElementById('fullName').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                company: document.getElementById('company').value,
+                hostName: document.getElementById('hostName').value,
+                hostCompany: document.getElementById('hostCompany').value || '',
+                purpose: document.getElementById('purpose').value,
+                vehicle: document.getElementById('vehicle').value || 'N/A',
+                checkInTime: new Date().toISOString(),
+                checkOutTime: null,
+                status: 'IN'
+            };
+
+            visitors.push(visitor);
+            localStorage.setItem('visitors', JSON.stringify(visitors));
+
+            showAlert('checkinAlert', 'success', 'Check-in successful! Generating badge...');
+            
+            setTimeout(() => {
+                generateBadge(visitor);
+                document.getElementById('checkinForm').reset();
+            }, 500);
+        });
+
+        // Generate Badge
+        function generateBadge(visitor) {
+            const checkInDate = new Date(visitor.checkInTime);
+            const dateStr = checkInDate.toLocaleDateString('en-GB').split('/').join('.') + ' ' + 
+                           checkInDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+            const badge = `
+                <div class="visitor-badge">
+                    <div class="badge-header">
+                        <span class="badge-title">Guest Card</span>
+                        <span class="badge-datetime">${dateStr}</span>
+                    </div>
+                    <div class="badge-content">
+                        <div class="badge-info">
+                            <div class="badge-name">${visitor.fullName}</div>
+                            <div class="badge-company">${visitor.company}</div>
+                            <div class="badge-host">${visitor.hostName}</div>
+                            <div class="badge-host-company">${visitor.hostCompany || 'N/A'}</div>
+                        </div>
+                        <div class="badge-qr" id="badgeQR-${visitor.id}"></div>
+                    </div>
+                    <div class="badge-footer">
+                        Please return this ticket when you leave. Have a nice day and welcome back.
+                        <br>Visitor ID: ${visitor.id}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('badgePreview').innerHTML = badge;
+            
+            setTimeout(() => {
+                const checkoutUrl = window.location.href.split('?')[0] + '?action=checkout&id=' + visitor.id;
+                new QRCode(document.getElementById('badgeQR-' + visitor.id), {
+                    text: checkoutUrl,
+                    width: 100,
+                    height: 100,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }, 100);
+
+            document.getElementById('badgeModal').classList.add('active');
+        }
+
+        // Print Badge
+        function printBadge() {
+            window.print();
+        }
+
+        // Close Badge Modal
+        function closeBadgeModal() {
+            document.getElementById('badgeModal').classList.remove('active');
+        }
+
+        // Check Out Visitor
+        function checkOutVisitor() {
+            const visitorId = document.getElementById('checkoutId').value.trim();
+            
+            if (!visitorId) {
+                showAlert('checkoutAlert', 'error', 'Please enter a visitor ID');
+                return;
+            }
+
+            const visitor = visitors.find(v => v.id === visitorId && v.status === 'IN');
+            
+            if (!visitor) {
+                showAlert('checkoutAlert', 'error', 'Visitor not found or already checked out');
+                return;
+            }
+
+            visitor.checkOutTime = new Date().toISOString();
+            visitor.status = 'OUT';
+            localStorage.setItem('visitors', JSON.stringify(visitors));
+
+            showAlert('checkoutAlert', 'success', `${visitor.fullName} checked out successfully!`);
+            document.getElementById('checkoutId').value = '';
+            
+            updateStats();
+        }
+
+        // Admin Login
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password === ADMIN_PASSWORD) {
+                isAdminLoggedIn = true;
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                updateAdminPanel();
+            } else {
+                showAlert('loginAlert', 'error', 'Incorrect password');
+            }
+        }
+
+        // Admin Logout
+        function adminLogout() {
+            isAdminLoggedIn = false;
+            document.getElementById('adminLogin').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+        }
+
+        // Update Admin Panel
+        function updateAdminPanel() {
+            updateStats();
+            displayCurrentVisitors();
+            displayVisitorHistory();
+        }
+
+        // Update Statistics
+        function updateStats() {
+            const currentIn = visitors.filter(v => v.status === 'IN').length;
+            const today = new Date().toDateString();
+            const todayCount = visitors.filter(v => new Date(v.checkInTime).toDateString() === today).length;
+            
+            document.getElementById('currentVisitors').textContent = currentIn;
+            document.getElementById('todayVisitors').textContent = todayCount;
+            document.getElementById('totalVisitors').textContent = visitors.length;
+        }
+
+        // Display Current Visitors
+        function displayCurrentVisitors() {
+            const currentVisitors = visitors.filter(v => v.status === 'IN');
+            const listDiv = document.getElementById('currentVisitorsList');
+            
+            if (currentVisitors.length === 0) {
+                listDiv.innerHTML = '<p style="color: var(--text-dim); text-align: center;">No visitors currently checked in</p>';
+                return;
+            }
+
+            listDiv.innerHTML = currentVisitors.map(v => {
+                const checkInDate = new Date(v.checkInTime);
+                return `
+                    <div class="visitor-item">
+                        <div class="visitor-info">
+                            <h3>${v.fullName}</h3>
+                            <div class="visitor-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">Company:</span>
+                                    <span>${v.company}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Visiting:</span>
+                                    <span>${v.hostName}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Phone:</span>
+                                    <span>${v.phone}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Check-In:</span>
+                                    <span>${checkInDate.toLocaleString()}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Purpose:</span>
+                                    <span>${v.purpose}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Vehicle:</span>
+                                    <span>${v.vehicle}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="status-badge status-in">IN</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Display Visitor History
+        function displayVisitorHistory() {
+            const historyDiv = document.getElementById('visitorHistory');
+            
+            if (visitors.length === 0) {
+                historyDiv.innerHTML = '<p style="color: var(--text-dim); text-align: center;">No visitor history</p>';
+                return;
+            }
+
+            const sortedVisitors = [...visitors].sort((a, b) => 
+                new Date(b.checkInTime) - new Date(a.checkInTime)
+            );
+
+            historyDiv.innerHTML = sortedVisitors.map(v => {
+                const checkInDate = new Date(v.checkInTime);
+                const checkOutDate = v.checkOutTime ? new Date(v.checkOutTime) : null;
+                
+                return `
+                    <div class="visitor-item ${v.status === 'OUT' ? 'checked-out' : ''}">
+                        <div class="visitor-info">
+                            <h3>${v.fullName} (${v.id})</h3>
+                            <div class="visitor-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">Company:</span>
+                                    <span>${v.company}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Visiting:</span>
+                                    <span>${v.hostName}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Check-In:</span>
+                                    <span>${checkInDate.toLocaleString()}</span>
+                                </div>
+                                ${checkOutDate ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Check-Out:</span>
+                                    <span>${checkOutDate.toLocaleString()}</span>
+                                </div>
+                                ` : ''}
+                                <div class="detail-item">
+                                    <span class="detail-label">Purpose:</span>
+                                    <span>${v.purpose}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="status-badge ${v.status === 'IN' ? 'status-in' : 'status-out'}">${v.status}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Export to Excel (CSV format)
+        function exportToExcel() {
+            if (visitors.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const csv = [
+                ['Visitor ID', 'Full Name', 'Phone', 'Email', 'Company', 'Host Name', 'Host Company', 'Purpose', 'Vehicle', 'Check-In Time', 'Check-Out Time', 'Status'],
+                ...visitors.map(v => [
+                    v.id,
+                    v.fullName,
+                    v.phone,
+                    v.email,
+                    v.company,
+                    v.hostName,
+                    v.hostCompany,
+                    v.purpose,
+                    v.vehicle,
+                    new Date(v.checkInTime).toLocaleString(),
+                    v.checkOutTime ? new Date(v.checkOutTime).toLocaleString() : 'N/A',
+                    v.status
+                ])
+            ].map(row => row.join(',')).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `visitor-log-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Check End of Day
+        function checkEndOfDay() {
+            const stillIn = visitors.filter(v => v.status === 'IN');
+            
+            if (stillIn.length === 0) {
+                alert('All visitors have checked out!');
+                return;
+            }
+
+            const names = stillIn.map(v => `- ${v.fullName} (${v.company})`).join('\n');
+            alert(`⚠️ ${stillIn.length} visitor(s) still checked in:\n\n${names}`);
+        }
+
+        // Clear History
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all visitor history? This cannot be undone.')) {
+                visitors = [];
+                localStorage.setItem('visitors', JSON.stringify(visitors));
+                updateAdminPanel();
+                alert('History cleared successfully');
+            }
+        }
+
+        // Show Alert
+        function showAlert(elementId, type, message) {
+            const alertDiv = document.getElementById(elementId);
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            
+            setTimeout(() => {
+                alertDiv.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Check-In</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Work+Sans:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0a0a0a;
+            --secondary: #1a1a1a;
+            --accent: #00ff88;
+            --accent-dim: #00cc6a;
+            --text: #ffffff;
+            --text-dim: #a0a0a0;
+            --border: #2a2a2a;
+            --card-bg: #151515;
+        }
+
+        body {
+            font-family: 'Work Sans', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 136, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--text) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        .nav-tab {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .nav-tab.active {
+            background: var(--accent);
+            color: var(--primary);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Work Sans', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+            background: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: var(--primary);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text);
+            box-shadow: none;
+            border: 1px solid var(--border);
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .alert-success {
+            background: rgba(0, 255, 136, 0.1);
+            border-left-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .alert-error {
+            background: rgba(255, 68, 68, 0.1);
+            border-left-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .quick-checkin {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .visitor-badge {
+            width: 400px;
+            height: 250px;
+            background: white;
+            border: 2px solid #000;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 2rem auto;
+            font-family: Arial, sans-serif;
+            color: #000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .badge-header {
+            background: #2a2a2a;
+            color: white;
+            padding: 8px 12px;
+            margin: -16px -16px 12px -16px;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .badge-content {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .badge-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .badge-company {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .badge-host {
+            font-size: 16px;
+            font-weight: 600;
+            color: #000;
+        }
+
+        .badge-qr canvas {
+            border: 2px solid #000;
+            border-radius: 4px;
+        }
+
+        .badge-footer {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #ddd;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .staff-link {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .staff-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        @media print {
+            @page {
+                size: 10cm 6.5cm;
+                margin: 0;
+            }
+            
+            body {
+                background: white;
+            }
+            
+            body * {
+                visibility: hidden;
+            }
+            
+            .visitor-badge, .visitor-badge * {
+                visibility: visible;
+            }
+            
+            .visitor-badge {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 10cm;
+                height: 6.5cm;
+                margin: 0;
+                box-shadow: none;
+                page-break-after: avoid;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Visitor Check-In</h1>
+            <p class="subtitle">Welcome! Please register below</p>
+        </header>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('new')">New Visitor</button>
+            <button class="nav-tab" onclick="switchTab('returning')">Returning Visitor</button>
+            <button class="nav-tab" onclick="switchTab('checkout')">Check Out</button>
+        </div>
+
+        <!-- New Visitor Tab -->
+        <div id="new" class="tab-content active">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">New Visitor Registration</h2>
+                <div id="newAlert"></div>
+                <form id="newVisitorForm">
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" id="fullName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number *</label>
+                        <input type="tel" id="phone" required placeholder="+971 XX XXX XXXX">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="company">Company/Organization *</label>
+                        <input type="text" id="company" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="hostName">Person/Department Visiting *</label>
+                        <input type="text" id="hostName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="hostCompany">Host's Company/Department</label>
+                        <input type="text" id="hostCompany">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="purpose">Purpose of Visit *</label>
+                        <textarea id="purpose" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehicle">Vehicle Details (Optional)</label>
+                        <input type="text" id="vehicle" placeholder="e.g., Toyota Camry, Plate: ABC123">
+                    </div>
+                    
+                    <button type="submit" class="btn" style="width: 100%;">Check In & Generate Badge</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Returning Visitor Tab -->
+        <div id="returning" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Quick Check-In (Returning Visitors)</h2>
+                <div id="returningAlert"></div>
+                <p style="color: var(--text-dim); margin-bottom: 1.5rem;">Enter your name or phone number to retrieve your previous details</p>
+                
+                <div class="quick-checkin">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="searchQuery">Name or Phone Number</label>
+                        <input type="text" id="searchQuery" placeholder="e.g., John Doe or +971501234567">
+                    </div>
+                    <button onclick="searchVisitor()" class="btn">Search</button>
+                </div>
+
+                <div id="returningForm" style="display: none; margin-top: 2rem;">
+                    <div class="alert alert-success">
+                        <strong>Welcome back!</strong> Your details have been loaded.
+                    </div>
+                    <form id="returningVisitorForm">
+                        <input type="hidden" id="returnFullName">
+                        <input type="hidden" id="returnPhone">
+                        <input type="hidden" id="returnEmail">
+                        <input type="hidden" id="returnCompany">
+                        
+                        <div class="form-group">
+                            <label for="returnHostName">Person/Department Visiting *</label>
+                            <input type="text" id="returnHostName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="returnHostCompany">Host's Company/Department</label>
+                            <input type="text" id="returnHostCompany">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="returnPurpose">Purpose of Visit *</label>
+                            <textarea id="returnPurpose" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="returnVehicle">Vehicle Details (Optional)</label>
+                            <input type="text" id="returnVehicle">
+                        </div>
+                        
+                        <button type="submit" class="btn" style="width: 100%;">Check In & Generate Badge</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check-Out Tab -->
+        <div id="checkout" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Visitor Check-Out</h2>
+                <div id="checkoutAlert"></div>
+                <p style="color: var(--text-dim); margin-bottom: 1.5rem;">Scan the QR code on your badge or enter your Visitor ID below</p>
+                <div class="form-group">
+                    <label for="checkoutId">Visitor ID</label>
+                    <input type="text" id="checkoutId" placeholder="e.g., VIS-123456">
+                </div>
+                <button onclick="checkOutVisitor()" class="btn" style="width: 100%;">Check Out</button>
+            </div>
+        </div>
+
+        <div class="staff-link">
+            <a href="staff.html">Staff / Admin Access →</a>
+        </div>
+    </div>
+
+    <!-- Badge Modal -->
+    <div id="badgeModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeBadgeModal()">×</button>
+            <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; text-align: center;">Visitor Badge</h2>
+            <div id="badgePreview"></div>
+            <div class="action-buttons">
+                <button onclick="printBadge()" class="btn">🖨️ Print</button>
+                <button onclick="saveBadgeAsPDF()" class="btn">💾 Save PDF</button>
+                <button onclick="sendToMobile()" class="btn">📱 Send to Mobile</button>
+                <button onclick="closeBadgeModal()" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script>
+        let visitors = JSON.parse(localStorage.getItem('visitors')) || [];
+        let currentBadgeData = null;
+
+        // Check for URL parameters (for QR code scanning)
+        window.addEventListener('DOMContentLoaded', checkForURLParams);
+
+        function checkForURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const visitorId = urlParams.get('id');
+
+            if (action === 'checkout' && visitorId) {
+                switchTab('checkout');
+                document.querySelector('[onclick*="checkout"]').classList.add('active');
+                document.getElementById('checkoutId').value = visitorId;
+                setTimeout(() => checkOutVisitor(), 500);
+            }
+        }
+
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const navTabs = document.querySelectorAll('.nav-tab');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            navTabs.forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // New Visitor Form
+        document.getElementById('newVisitorForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const visitor = {
+                id: 'VIS-' + Date.now(),
+                fullName: document.getElementById('fullName').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                company: document.getElementById('company').value,
+                hostName: document.getElementById('hostName').value,
+                hostCompany: document.getElementById('hostCompany').value || '',
+                purpose: document.getElementById('purpose').value,
+                vehicle: document.getElementById('vehicle').value || 'N/A',
+                checkInTime: new Date().toISOString(),
+                checkOutTime: null,
+                status: 'IN'
+            };
+
+            visitors.push(visitor);
+            localStorage.setItem('visitors', JSON.stringify(visitors));
+
+            showAlert('newAlert', 'success', 'Check-in successful! Generating badge...');
+            
+            setTimeout(() => {
+                generateBadge(visitor);
+                document.getElementById('newVisitorForm').reset();
+            }, 500);
+        });
+
+        // Search Visitor
+        function searchVisitor() {
+            const query = document.getElementById('searchQuery').value.trim().toLowerCase();
+            
+            if (!query) {
+                showAlert('returningAlert', 'error', 'Please enter a name or phone number');
+                return;
+            }
+
+            const found = visitors.find(v => 
+                v.fullName.toLowerCase().includes(query) || 
+                v.phone.includes(query)
+            );
+
+            if (found) {
+                document.getElementById('returnFullName').value = found.fullName;
+                document.getElementById('returnPhone').value = found.phone;
+                document.getElementById('returnEmail').value = found.email;
+                document.getElementById('returnCompany').value = found.company;
+                document.getElementById('returningForm').style.display = 'block';
+                showAlert('returningAlert', 'success', `Welcome back, ${found.fullName}!`);
+            } else {
+                showAlert('returningAlert', 'error', 'Visitor not found. Please use "New Visitor" tab.');
+                document.getElementById('returningForm').style.display = 'none';
+            }
+        }
+
+        // Returning Visitor Form
+        document.getElementById('returningVisitorForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const visitor = {
+                id: 'VIS-' + Date.now(),
+                fullName: document.getElementById('returnFullName').value,
+                phone: document.getElementById('returnPhone').value,
+                email: document.getElementById('returnEmail').value,
+                company: document.getElementById('returnCompany').value,
+                hostName: document.getElementById('returnHostName').value,
+                hostCompany: document.getElementById('returnHostCompany').value || '',
+                purpose: document.getElementById('returnPurpose').value,
+                vehicle: document.getElementById('returnVehicle').value || 'N/A',
+                checkInTime: new Date().toISOString(),
+                checkOutTime: null,
+                status: 'IN'
+            };
+
+            visitors.push(visitor);
+            localStorage.setItem('visitors', JSON.stringify(visitors));
+
+            showAlert('returningAlert', 'success', 'Check-in successful! Generating badge...');
+            
+            setTimeout(() => {
+                generateBadge(visitor);
+                document.getElementById('returningVisitorForm').reset();
+                document.getElementById('searchQuery').value = '';
+                document.getElementById('returningForm').style.display = 'none';
+            }, 500);
+        });
+
+        function generateBadge(visitor) {
+            currentBadgeData = visitor;
+            const checkInDate = new Date(visitor.checkInTime);
+            const dateStr = checkInDate.toLocaleDateString('en-GB').split('/').join('.') + ' ' + 
+                           checkInDate.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+            const badge = `
+                <div class="visitor-badge" id="badgeToPrint">
+                    <div class="badge-header">
+                        <span class="badge-title" style="font-size: 16px;">Guest Card</span>
+                        <span class="badge-datetime" style="font-size: 12px; font-family: 'Courier New', monospace;">${dateStr}</span>
+                    </div>
+                    <div class="badge-content">
+                        <div class="badge-info">
+                            <div class="badge-name">${visitor.fullName}</div>
+                            <div class="badge-company">${visitor.company}</div>
+                            <div class="badge-host">${visitor.hostName}</div>
+                            <div class="badge-host-company" style="font-size: 12px; color: #666;">${visitor.hostCompany || 'N/A'}</div>
+                        </div>
+                        <div class="badge-qr" id="badgeQR-${visitor.id}" style="width: 100px; height: 100px;"></div>
+                    </div>
+                    <div class="badge-footer">
+                        Please return this ticket when you leave. Have a nice day and welcome back.
+                        <br>Visitor ID: ${visitor.id}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('badgePreview').innerHTML = badge;
+            
+            setTimeout(() => {
+                const checkoutUrl = window.location.href.split('?')[0] + '?action=checkout&id=' + visitor.id;
+                new QRCode(document.getElementById('badgeQR-' + visitor.id), {
+                    text: checkoutUrl,
+                    width: 100,
+                    height: 100,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }, 100);
+
+            document.getElementById('badgeModal').classList.add('active');
+        }
+
+        function printBadge() {
+            window.print();
+        }
+
+        function saveBadgeAsPDF() {
+            const badge = document.getElementById('badgeToPrint');
+            html2canvas(badge, {
+                scale: 3,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: [100, 65]
+                });
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, 100, 65);
+                pdf.save(`visitor-badge-${currentBadgeData.id}.pdf`);
+                
+                showAlert('newAlert', 'success', 'Badge saved as PDF!');
+            });
+        }
+
+        function sendToMobile() {
+            if (!currentBadgeData) return;
+            
+            const badge = document.getElementById('badgeToPrint');
+            html2canvas(badge, {
+                scale: 3,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                canvas.toBlob(blob => {
+                    const message = `Your visitor badge for ${currentBadgeData.fullName}. Show this upon entry and exit.`;
+                    const whatsappUrl = `https://wa.me/${currentBadgeData.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+                    
+                    alert(`Badge image ready!\n\nOption 1: Send via WhatsApp (opening now)\nOption 2: Download and send manually\n\nPhone: ${currentBadgeData.phone}`);
+                    
+                    // Open WhatsApp
+                    window.open(whatsappUrl, '_blank');
+                    
+                    // Also trigger download
+                    const url = canvas.toDataURL('image/jpeg', 0.9);
+                    const link = document.createElement('a');
+                    link.download = `visitor-badge-${currentBadgeData.id}.jpg`;
+                    link.href = url;
+                    link.click();
+                });
+            });
+        }
+
+        function closeBadgeModal() {
+            document.getElementById('badgeModal').classList.remove('active');
+            currentBadgeData = null;
+        }
+
+        function checkOutVisitor() {
+            const visitorId = document.getElementById('checkoutId').value.trim();
+            
+            if (!visitorId) {
+                showAlert('checkoutAlert', 'error', 'Please enter a visitor ID');
+                return;
+            }
+
+            const visitor = visitors.find(v => v.id === visitorId && v.status === 'IN');
+            
+            if (!visitor) {
+                showAlert('checkoutAlert', 'error', 'Visitor not found or already checked out');
+                return;
+            }
+
+            visitor.checkOutTime = new Date().toISOString();
+            visitor.status = 'OUT';
+            localStorage.setItem('visitors', JSON.stringify(visitors));
+
+            showAlert('checkoutAlert', 'success', `${visitor.fullName} checked out successfully! Thank you for visiting.`);
+            document.getElementById('checkoutId').value = '';
+        }
+
+        function showAlert(elementId, type, message) {
+            const alertDiv = document.getElementById(elementId);
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            
+            setTimeout(() => {
+                alertDiv.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

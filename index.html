@@ -369,7 +369,23 @@
         }
 
         @media print {
-            /* Hide everything by class name, not * */
+            @page {
+                size: 10cm 6.5cm;
+                margin: 0;
+            }
+            
+            body {
+                background: white;
+                width: 10cm;
+                height: 6.5cm;
+                margin: 0;
+                padding: 0;
+            }
+            
+            body::before {
+                display: none;
+            }
+            
             .container,
             header,
             .nav-tabs,
@@ -382,7 +398,6 @@
                 display: none !important;
             }
             
-            /* Show only the badge */
             .modal {
                 display: block !important;
                 position: static !important;
@@ -391,7 +406,17 @@
             
             .visitor-badge {
                 display: block !important;
-                /* Full badge displayed properly */
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 10cm !important;
+                height: 6.5cm !important;
+                margin: 0 !important;
+                padding: 16px !important;
+                box-shadow: none !important;
+                border: 2px solid #000 !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
             }
         }
 
@@ -755,6 +780,7 @@
         function sendToMobile() {
             if (!currentBadgeData) return;
             
+            // Show loading message
             const originalBtn = event.target;
             const originalText = originalBtn.textContent;
             originalBtn.textContent = 'Generating...';
@@ -765,38 +791,40 @@
                 scale: 3,
                 backgroundColor: '#ffffff'
             }).then(canvas => {
-                canvas.toBlob(async (blob) => {
-                    const fileName = `visitor-badge-${currentBadgeData.fullName.replace(/\s+/g, '-')}.jpg`;
-                    const file = new File([blob], fileName, { type: 'image/jpeg' });
+                canvas.toBlob(blob => {
+                    // Convert to data URL for download
+                    const url = canvas.toDataURL('image/jpeg', 0.95);
                     
-                    // Check if Web Share API is supported
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                        try {
-                            await navigator.share({
-                                files: [file],
-                                title: 'Visitor Badge',
-                                text: `Hello! Your visitor badge has been generated. Visitor ID: ${currentBadgeData.id}. Please show your badge when arriving and leaving.`
-                            });
-                            
-                            originalBtn.textContent = originalText;
-                            originalBtn.disabled = false;
-                        } catch (error) {
-                            if (error.name !== 'AbortError') {
-                                console.error('Share failed:', error);
-                                fallbackShare(blob, fileName, originalBtn, originalText);
-                            } else {
-                                originalBtn.textContent = originalText;
-                                originalBtn.disabled = false;
-                            }
-                        }
-                    } else {
-                        // Fallback for browsers that don't support Web Share API
-                        fallbackShare(blob, fileName, originalBtn, originalText);
-                    }
+                    // Download the badge image
+                    const link = document.createElement('a');
+                    link.download = `visitor-badge-${currentBadgeData.id}.jpg`;
+                    link.href = url;
+                    link.click();
+                    
+                    // Clean phone number (remove spaces, dashes, etc.)
+                    const cleanPhone = currentBadgeData.phone.replace(/[^0-9+]/g, '');
+                    
+                    // Create WhatsApp message
+                    const message = `Hello ${currentBadgeData.fullName}! Your visitor badge is attached. Please show this when you arrive and when you leave. Visitor ID: ${currentBadgeData.id}`;
+                    
+                    // WhatsApp URL with phone number
+                    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+                    
+                    // Show success message
+                    setTimeout(() => {
+                        alert(`✅ Badge downloaded successfully!\n\n📱 WhatsApp will open for: ${currentBadgeData.fullName}\nPhone: ${currentBadgeData.phone}\n\n⚠️ Important: You need to manually attach the downloaded image in WhatsApp.\n\n1. WhatsApp will open\n2. Click the attachment (📎) icon\n3. Select 'Gallery' or 'Photos'\n4. Choose the badge image that was just downloaded\n5. Send!`);
+                        
+                        // Open WhatsApp with the visitor's number
+                        window.open(whatsappUrl, '_blank');
+                        
+                        // Reset button
+                        originalBtn.textContent = originalText;
+                        originalBtn.disabled = false;
+                    }, 500);
                 }, 'image/jpeg', 0.95);
             }).catch(error => {
-                console.error('Error:', error);
-                alert('Error generating badge. Please try again.');
+                console.error('Error generating badge:', error);
+                alert('Error generating badge image. Please try again.');
                 originalBtn.textContent = originalText;
                 originalBtn.disabled = false;
             });

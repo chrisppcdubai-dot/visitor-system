@@ -373,28 +373,43 @@
                 margin: 0;
             }
             
-            body {
-                background: white;
+            html, body {
+                width: 10cm;
+                height: 6.5cm;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
             }
             
-            body * {
+            * {
                 visibility: hidden;
             }
             
-            .visitor-badge, .visitor-badge * {
+            .visitor-badge,
+            .visitor-badge * {
                 visibility: visible;
             }
             
             .visitor-badge {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 10cm;
-                height: 6.5cm;
-                margin: 0;
-                box-shadow: none;
-                page-break-after: avoid;
-                page-break-inside: avoid;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 10cm !important;
+                height: 6.5cm !important;
+                margin: 0 !important;
+                padding: 16px !important;
+                box-shadow: none !important;
+                transform: none !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .modal,
+            .modal-content,
+            .action-buttons,
+            button {
+                display: none !important;
+                visibility: hidden !important;
             }
         }
     </style>
@@ -861,8 +876,77 @@
             
             const originalBtn = event.target;
             const originalText = originalBtn.textContent;
-            originalBtn.textContent = 'Preparing...';
-            originalBtn.disabled = true;
+            
+            // Check if email exists
+            if (!currentBadgeData.email || !currentBadgeData.email.includes('@')) {
+                // Show email input modal
+                const modalHTML = `
+                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;" id="emailInputModal">
+                        <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 500px; width: 90%;">
+                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.3rem; text-align: center;">📧 Enter Email Address</h3>
+                            <p style="color: var(--text-dim); margin-bottom: 1.5rem; text-align: center;">Please provide the visitor's email address to send the badge</p>
+                            
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; color: var(--accent); font-weight: 600;">Email Address *</label>
+                                <input type="email" id="visitorEmailInput" placeholder="visitor@example.com" style="width: 100%; padding: 0.875rem 1rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1rem;">
+                            </div>
+                            
+                            <div style="display: grid; gap: 1rem;">
+                                <button onclick="sendEmailWithAddress()" style="background: var(--accent); color: var(--primary); border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 1rem;">
+                                    Send Badge via Email
+                                </button>
+                                <button onclick="closeEmailInputModal()" style="background: var(--secondary); color: var(--text); border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; cursor: pointer;">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                document.getElementById('visitorEmailInput').focus();
+                return;
+            }
+            
+            // If email exists, proceed with sending
+            proceedWithEmail(currentBadgeData.email, originalBtn, originalText);
+        }
+        
+        function sendEmailWithAddress() {
+            const email = document.getElementById('visitorEmailInput').value.trim();
+            
+            if (!email || !email.includes('@')) {
+                alert('❌ Please enter a valid email address');
+                return;
+            }
+            
+            // Update the current badge data with email
+            currentBadgeData.email = email;
+            
+            // Update in visitors array
+            const visitor = visitors.find(v => v.id === currentBadgeData.id);
+            if (visitor) {
+                visitor.email = email;
+                localStorage.setItem('visitors', JSON.stringify(visitors));
+            }
+            
+            closeEmailInputModal();
+            
+            // Find the email button and proceed
+            const emailBtn = Array.from(document.querySelectorAll('.btn')).find(btn => btn.textContent.includes('Email'));
+            proceedWithEmail(email, emailBtn, emailBtn ? emailBtn.textContent : '📧 Email Badge');
+        }
+        
+        function closeEmailInputModal() {
+            const modal = document.getElementById('emailInputModal');
+            if (modal) modal.remove();
+        }
+        
+        function proceedWithEmail(email, originalBtn, originalText) {
+            if (originalBtn) {
+                originalBtn.textContent = 'Preparing...';
+                originalBtn.disabled = true;
+            }
             
             const badge = document.getElementById('badgeToPrint');
             html2canvas(badge, {
@@ -890,66 +974,65 @@
                     `• Visitor ID: ${currentBadgeData.id}\n` +
                     `• Date: ${new Date(currentBadgeData.checkInTime).toLocaleDateString()}\n\n` +
                     `Please show this badge upon arrival and when leaving the facility.\n\n` +
-                    `The badge image has been downloaded to your device. Please attach it to this email.\n\n` +
+                    `The badge image has been downloaded. Please attach it to this email.\n\n` +
                     `Best regards,\n` +
                     `Plastic Powder Coating Company LLC`
                 );
                 
-                if (currentBadgeData.email && currentBadgeData.email.includes('@')) {
-                    // Show success modal
-                    const modalHTML = `
-                        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;" id="emailModal">
-                            <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 500px; text-align: center;">
-                                <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.3rem;">📧 Email Ready!</h3>
-                                <p style="color: var(--text); margin-bottom: 1rem;">Badge downloaded: ${fileName}</p>
-                                
-                                <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                                    <p style="color: var(--text-dim); font-size: 0.9rem;">Sending to:</p>
-                                    <p style="color: var(--accent); font-size: 1.1rem; font-weight: bold; margin-top: 0.5rem;">${currentBadgeData.email}</p>
-                                </div>
-                                
-                                <button onclick="openEmailClient('${currentBadgeData.email}', '${subject}', '${body}', '${fileName}')" style="background: var(--accent); color: var(--primary); border: none; padding: 1rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; margin-bottom: 1rem; font-size: 1.1rem;">
-                                    Open Email Client
-                                </button>
-                                
-                                <button onclick="closeEmailModal()" style="background: var(--secondary); color: var(--text); border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; cursor: pointer; width: 100%;">
-                                    Close
-                                </button>
-                                
-                                <p style="color: var(--warning); font-size: 0.85rem; margin-top: 1rem; background: rgba(255, 170, 0, 0.1); padding: 0.75rem; border-radius: 6px;">
-                                    📎 Badge is in Downloads folder<br>Attach it before sending the email
-                                </p>
+                // Show success modal
+                const modalHTML = `
+                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;" id="emailSuccessModal">
+                        <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 500px; text-align: center;">
+                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.3rem;">📧 Email Ready!</h3>
+                            <p style="color: var(--text); margin-bottom: 1rem;">Badge downloaded: ${fileName}</p>
+                            
+                            <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                                <p style="color: var(--text-dim); font-size: 0.9rem;">Sending to:</p>
+                                <p style="color: var(--accent); font-size: 1.1rem; font-weight: bold; margin-top: 0.5rem;">${email}</p>
                             </div>
+                            
+                            <button onclick="openEmailClientFinal('${email}', '${subject}', '${body}', '${fileName}')" style="background: var(--accent); color: var(--primary); border: none; padding: 1rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; margin-bottom: 1rem; font-size: 1.1rem;">
+                                Open Email Client
+                            </button>
+                            
+                            <button onclick="closeEmailSuccessModal()" style="background: var(--secondary); color: var(--text); border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; cursor: pointer; width: 100%;">
+                                Close
+                            </button>
+                            
+                            <p style="color: var(--warning); font-size: 0.85rem; margin-top: 1rem; background: rgba(255, 170, 0, 0.1); padding: 0.75rem; border-radius: 6px;">
+                                📎 Badge is in Downloads folder<br>Attach it before sending
+                            </p>
                         </div>
-                    `;
-                    
-                    document.body.insertAdjacentHTML('beforeend', modalHTML);
-                } else {
-                    alert('❌ No valid email address found for this visitor.\n\nEmail: ' + (currentBadgeData.email || 'Not provided') + '\n\nPlease use "Send to Mobile" instead.');
-                }
+                    </div>
+                `;
                 
-                originalBtn.textContent = originalText;
-                originalBtn.disabled = false;
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                
+                if (originalBtn) {
+                    originalBtn.textContent = originalText;
+                    originalBtn.disabled = false;
+                }
             }).catch(error => {
                 console.error('Error:', error);
                 alert('Error generating badge. Please try again.');
-                originalBtn.textContent = originalText;
-                originalBtn.disabled = false;
+                if (originalBtn) {
+                    originalBtn.textContent = originalText;
+                    originalBtn.disabled = false;
+                }
             });
         }
-
-        function openEmailClient(email, subject, body, fileName) {
+        
+        function openEmailClientFinal(email, subject, body, fileName) {
             window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
             setTimeout(() => {
-                alert(`✅ Email client opened!\n\nTo: ${email}\n\n📎 Please attach the badge:\n"${fileName}"\n\nIt's in your Downloads folder.`);
+                alert(`✅ Email client opened!\n\nTo: ${email}\n\n📎 Please attach:\n"${fileName}"\n\nFrom your Downloads folder.`);
             }, 500);
         }
-
-        function closeEmailModal() {
-            const modal = document.getElementById('emailModal');
+        
+        function closeEmailSuccessModal() {
+            const modal = document.getElementById('emailSuccessModal');
             if (modal) modal.remove();
         }
-
         function closeBadgeModal() {
             document.getElementById('badgeModal').classList.remove('active');
             currentBadgeData = null;

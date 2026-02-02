@@ -22,7 +22,6 @@
             --text-dim: #a0a0a0;
             --border: #2a2a2a;
             --card-bg: #151515;
-            --warning: #ffaa00;
         }
 
         body {
@@ -368,8 +367,7 @@
             font-size: 0.85rem;
         }
 
-         {
-            @media print {
+        @media print {
             @page {
                 size: 10cm 6.5cm;
                 margin: 0;
@@ -394,14 +392,14 @@
                 width: 10cm;
                 height: 6.5cm;
                 margin: 0;
-		        padding: 16px !important;
+		padding: 16px !important;
                 box-shadow: none;
-		        transform: none !important;
+		transform: none !important;
                 page-break-after: avoid;
                 page-break-inside: avoid;
-                }
-            }
-        }
+           	}
+             }
+ 	}
             
             .modal,
             .modal-content,
@@ -460,7 +458,7 @@
                     
                     <div class="form-group">
                         <label for="hostCompany">Host's Company/Department</label>
-                        <input type="text" id="hostCompany" value="Plastic Powder Coating Company LLC">
+                        <input type="text" id="hostCompany">
                     </div>
                     
                     <div class="form-group">
@@ -504,22 +502,22 @@
                         <input type="hidden" id="returnCompany">
                         
                         <div class="form-group">
-                            <label for="returnHostName">Person/Department Visiting</label>
-                            <input type="text" id="returnHostName">
+                            <label for="returnHostName">Person/Department Visiting *</label>
+                            <input type="text" id="returnHostName" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="returnHostCompany">Host's Company/Department</label>
-                            <input type="text" id="returnHostCompany" value="Plastic Powder Coating Company LLC">
+                            <input type="text" id="returnHostCompany">
                         </div>
                         
                         <div class="form-group">
-                            <label for="returnPurpose">Purpose of Visit</label>
-                            <textarea id="returnPurpose"></textarea>
+                            <label for="returnPurpose">Purpose of Visit *</label>
+                            <textarea id="returnPurpose" required></textarea>
                         </div>
                         
                         <div class="form-group">
-                            <label for="returnVehicle">Vehicle Details</label>
+                            <label for="returnVehicle">Vehicle Details (Optional)</label>
                             <input type="text" id="returnVehicle">
                         </div>
                         
@@ -557,7 +555,6 @@
             <div class="action-buttons">
                 <button onclick="printBadge()" class="btn">🖨️ Print</button>
                 <button onclick="saveBadgeAsPDF()" class="btn">💾 Save PDF</button>
-                <button onclick="sendViaEmail()" class="btn">📧 Email Badge</button>
                 <button onclick="sendToMobile()" class="btn">📱 Send to Mobile</button>
                 <button onclick="closeBadgeModal()" class="btn btn-secondary">Close</button>
             </div>
@@ -572,6 +569,7 @@
         let visitors = JSON.parse(localStorage.getItem('visitors')) || [];
         let currentBadgeData = null;
 
+        // Check for URL parameters (for QR code scanning)
         window.addEventListener('DOMContentLoaded', checkForURLParams);
 
         function checkForURLParams() {
@@ -598,6 +596,7 @@
             event.target.classList.add('active');
         }
 
+        // New Visitor Form
         document.getElementById('newVisitorForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -627,6 +626,7 @@
             }, 500);
         });
 
+        // Search Visitor
         function searchVisitor() {
             const query = document.getElementById('searchQuery').value.trim().toLowerCase();
             
@@ -645,19 +645,15 @@
                 document.getElementById('returnPhone').value = found.phone;
                 document.getElementById('returnEmail').value = found.email;
                 document.getElementById('returnCompany').value = found.company;
-                document.getElementById('returnHostName').value = found.hostName || '';
-                document.getElementById('returnHostCompany').value = found.hostCompany || 'Plastic Powder Coating Company LLC';
-                document.getElementById('returnPurpose').value = found.purpose || '';
-                document.getElementById('returnVehicle').value = found.vehicle || '';
-                
                 document.getElementById('returningForm').style.display = 'block';
-                showAlert('returningAlert', 'success', `Welcome back, ${found.fullName}! All your previous details have been loaded. Edit if needed or click Check In.`);
+                showAlert('returningAlert', 'success', `Welcome back, ${found.fullName}!`);
             } else {
                 showAlert('returningAlert', 'error', 'Visitor not found. Please use "New Visitor" tab.');
                 document.getElementById('returningForm').style.display = 'none';
             }
         }
 
+        // Returning Visitor Form
         document.getElementById('returningVisitorForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -858,179 +854,9 @@
                 prompt('Copy this phone number:', phone);
             });
         }
-		function closeSendModal() {
+
+        function closeSendModal() {
             const modal = document.getElementById('sendModal');
-            if (modal) modal.remove();
-        }
-
-        function sendViaEmail() {
-            if (!currentBadgeData) return;
-            
-            if (!currentBadgeData.email || !currentBadgeData.email.includes('@')) {
-                const modalHTML = `
-                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;" id="emailInputModal">
-                        <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 500px; width: 90%;">
-                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.3rem; text-align: center;">📧 Enter Email Address</h3>
-                            <p style="color: var(--text-dim); margin-bottom: 1.5rem; text-align: center;">Please provide the visitor's email to send the badge</p>
-                            
-                            <div style="margin-bottom: 1.5rem;">
-                                <label style="display: block; margin-bottom: 0.5rem; color: var(--accent); font-weight: 600; font-size: 0.9rem;">Email Address</label>
-                                <input type="email" id="visitorEmailInput" placeholder="visitor@example.com" required style="width: 100%; padding: 0.875rem 1rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1rem;">
-                            </div>
-                            
-                            <div style="display: grid; gap: 1rem;">
-                                <button onclick="sendEmailWithAddress()" style="background: var(--accent); color: var(--primary); border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 1rem;">
-                                    📧 Continue
-                                </button>
-                                <button onclick="closeEmailInputModal()" style="background: var(--secondary); color: var(--text); border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; cursor: pointer;">
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
-                setTimeout(() => document.getElementById('visitorEmailInput').focus(), 100);
-                return;
-            }
-            
-            proceedWithEmail(currentBadgeData.email);
-        }
-
-        function sendEmailWithAddress() {
-            const email = document.getElementById('visitorEmailInput').value.trim();
-            
-            if (!email || !email.includes('@')) {
-                alert('❌ Please enter a valid email address');
-                document.getElementById('visitorEmailInput').focus();
-                return;
-            }
-            
-            currentBadgeData.email = email;
-            
-            const visitor = visitors.find(v => v.id === currentBadgeData.id);
-            if (visitor) {
-                visitor.email = email;
-                localStorage.setItem('visitors', JSON.stringify(visitors));
-            }
-            
-            closeEmailInputModal();
-            proceedWithEmail(email);
-        }
-
-        function closeEmailInputModal() {
-            const modal = document.getElementById('emailInputModal');
-            if (modal) modal.remove();
-        }
-
-        function proceedWithEmail(email) {
-            const badge = document.getElementById('badgeToPrint');
-            
-            html2canvas(badge, {
-                scale: 3,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
-                const imageData = canvas.toDataURL('image/jpeg', 0.95);
-                
-                const link = document.createElement('a');
-                const fileName = `visitor-badge-${currentBadgeData.fullName.replace(/\s+/g, '-')}.jpg`;
-                link.download = fileName;
-                link.href = imageData;
-                link.click();
-                
-                const subject = `Your Visitor Badge - ${currentBadgeData.fullName}`;
-                const body = `Dear ${currentBadgeData.fullName},
-
-Your visitor badge for Plastic Powder Coating Company LLC has been generated.
-
-Visitor Details:
-• Name: ${currentBadgeData.fullName}
-• Company: ${currentBadgeData.company}
-• Visiting: ${currentBadgeData.hostName}
-• ID: ${currentBadgeData.id}
-• Date: ${new Date(currentBadgeData.checkInTime).toLocaleDateString()}
-
-Please show this badge upon arrival and departure.
-
-Badge image (${fileName}) has been downloaded to your device.
-
-Best regards,
-Plastic Powder Coating Company LLC`;
-                
-                const modalHTML = `
-                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;" id="emailSuccessModal">
-                        <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 550px; text-align: center;">
-                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.3rem;">📧 Email Instructions</h3>
-                            <p style="color: var(--text); margin-bottom: 1rem;">Badge downloaded: <strong>${fileName}</strong></p>
-                            
-                            <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                                <p style="color: var(--text-dim); font-size: 0.9rem;">Send to:</p>
-                                <p style="color: var(--accent); font-size: 1.1rem; font-weight: bold; margin-top: 0.5rem; word-break: break-all;">${email}</p>
-                            </div>
-                            
-                            <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: left;">
-                                <p style="color: var(--text); font-size: 0.95rem; line-height: 1.8; margin-bottom: 1rem;">
-                                    <strong style="color: var(--accent);">📨 To send via email:</strong>
-                                </p>
-                                <p style="color: var(--text); font-size: 0.9rem; line-height: 1.7;">
-                                    <strong>1.</strong> Open your email app (Gmail, Outlook)<br>
-                                    <strong>2.</strong> Compose to: <strong style="color: var(--accent);">${email}</strong><br>
-                                    <strong>3.</strong> Subject: <em>Your Visitor Badge</em><br>
-                                    <strong>4.</strong> Attach badge from Downloads<br>
-                                    <strong>5.</strong> Copy message below & paste<br>
-                                    <strong>6.</strong> Send!
-                                </p>
-                            </div>
-                            
-                            <button onclick="copyEmailContent('${email.replace(/'/g, "\\'")}', \`${subject.replace(/`/g, "\\`")}\`, \`${body.replace(/`/g, "\\`")}\`)" style="background: var(--accent); color: var(--primary); border: none; padding: 1rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; margin-bottom: 1rem; font-size: 1rem;">
-                                📋 Copy Email & Message
-                            </button>
-                            
-                            <button onclick="tryOpenEmail('${email.replace(/'/g, "\\'")}', \`${encodeURIComponent(subject)}\`, \`${encodeURIComponent(body)}\`)" style="background: var(--secondary); color: var(--text); border: 1px solid var(--border); padding: 0.875rem; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 1rem; font-weight: 600;">
-                                📧 Try Open Email App
-                            </button>
-                            
-                            <button onclick="closeEmailSuccessModal()" style="background: var(--secondary); color: var(--text-dim); border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; cursor: pointer; width: 100%;">
-                                Close
-                            </button>
-                            
-                            <p style="color: var(--warning); font-size: 0.85rem; margin-top: 1rem; background: rgba(255, 170, 0, 0.1); padding: 0.75rem; border-radius: 6px;">
-                                ⚠️ Gmail web users - compose manually & attach badge from Downloads
-                            </p>
-                        </div>
-                    </div>
-                `;
-                
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
-            }).catch(error => {
-                console.error('Error:', error);
-                alert('Error generating badge. Please try again.');
-            });
-        }
-
-        function copyEmailContent(email, subject, body) {
-            const content = `To: ${email}
-Subject: ${subject}
-
-${body}`;
-            
-            navigator.clipboard.writeText(content).then(() => {
-                alert(`✅ Email content copied!\n\nNow:\n1. Open your email app\n2. Paste (Ctrl+V)\n3. Attach badge from Downloads\n4. Send!`);
-            }).catch(() => {
-                prompt('Copy this email content:', content);
-            });
-        }
-
-        function tryOpenEmail(email, subject, body) {
-            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-            setTimeout(() => {
-                alert(`📧 If email app didn't open:\n\n1. Click "Copy Email & Message"\n2. Open your email app manually\n3. Paste the content\n4. Attach badge from Downloads\n5. Send!`);
-            }, 1000);
-        }
-
-        function closeEmailSuccessModal() {
-            const modal = document.getElementById('emailSuccessModal');
             if (modal) modal.remove();
         }
 

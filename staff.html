@@ -361,7 +361,12 @@
                 <div id="loginAlert"></div>
                 <div class="form-group">
                     <label for="adminPassword">Password</label>
-                    <input type="password" id="adminPassword" placeholder="Enter staff password">
+                    <div style="position: relative;">
+                        <input type="password" id="adminPassword" placeholder="Enter staff password" style="padding-right: 3rem;">
+                        <button type="button" onclick="togglePasswordVisibility('adminPassword', 'toggleLoginIcon')" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem; padding: 0.5rem;">
+                            <span id="toggleLoginIcon">👁️</span>
+                        </button>
+                    </div>
                 </div>
                 <button onclick="staffLogin()" class="btn" style="width: 100%;">Login</button>
                 <p style="color: var(--text-dim); margin-top: 1rem; text-align: center; font-size: 0.85rem;">
@@ -477,15 +482,30 @@
                     <form id="passwordForm">
                         <div class="form-group">
                             <label for="currentPassword">Current Password</label>
-                            <input type="password" id="currentPassword" required>
+                            <div style="position: relative;">
+                                <input type="password" id="currentPassword" required style="padding-right: 3rem;">
+                                <button type="button" onclick="togglePasswordVisibility('currentPassword', 'toggleCurrentIcon')" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem; padding: 0.5rem;">
+                                    <span id="toggleCurrentIcon">👁️</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="newPassword">New Password</label>
-                            <input type="password" id="newPassword" required minlength="6">
+                            <div style="position: relative;">
+                                <input type="password" id="newPassword" required minlength="6" style="padding-right: 3rem;">
+                                <button type="button" onclick="togglePasswordVisibility('newPassword', 'toggleNewIcon')" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem; padding: 0.5rem;">
+                                    <span id="toggleNewIcon">👁️</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="confirmPassword">Confirm New Password</label>
-                            <input type="password" id="confirmPassword" required minlength="6">
+                            <div style="position: relative;">
+                                <input type="password" id="confirmPassword" required minlength="6" style="padding-right: 3rem;">
+                                <button type="button" onclick="togglePasswordVisibility('confirmPassword', 'toggleConfirmIcon')" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem; padding: 0.5rem;">
+                                    <span id="toggleConfirmIcon">👁️</span>
+                                </button>
+                            </div>
                         </div>
                         <button type="submit" class="btn">Change Password</button>
                     </form>
@@ -831,10 +851,15 @@
             // Generate filename
             const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
             const rangeStr = range === 'today' ? 'daily' : range === 'week' ? 'weekly' : range === 'month' ? 'monthly' : 'all-history';
-            const filename = `PPC-visitors-${rangeStr}-${dateStr}.csv`;
+            const filename = `PPC-visitors-${rangeStr}-${dateStr}.xlsx`;
             
             // Download the file
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([csv], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;' });
+            ```
+            
+            **Your folder path should be:**
+            ```
+            Z:\Jashni\
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -1150,6 +1175,19 @@
             document.getElementById('totalCount').textContent = visitors.length;
             document.getElementById('currentCount').textContent = visitors.filter(v => v.status === 'IN').length;
             document.getElementById('storageSize').textContent = (storageBytes / 1024).toFixed(2) + ' KB';
+        }
+        
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                icon.textContent = '👁️';
+            }
         }
 
         function showAlert(elementId, type, message) {

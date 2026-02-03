@@ -401,9 +401,34 @@
                     <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Quick Actions</h2>
                     <div class="action-buttons">
                         <button onclick="switchTab('current')" class="btn">View Current Visitors</button>
-                        <button onclick="exportToExcel()" class="btn btn-secondary">Export to Excel</button>
                         <button onclick="checkEndOfDay()" class="btn btn-secondary">Check End of Day</button>
                         <button onclick="staffLogout()" class="btn btn-danger">Logout</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">📊 Export Data</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <button onclick="exportData('today')" class="btn btn-secondary">📅 Export Today</button>
+                        <button onclick="exportData('week')" class="btn btn-secondary">📆 Export This Week</button>
+                        <button onclick="exportData('month')" class="btn btn-secondary">🗓️ Export This Month</button>
+                        <button onclick="exportData('all')" class="btn btn-secondary">📚 Export All History</button>
+                    </div>
+                    
+                    <div style="background: rgba(0, 255, 136, 0.05); border: 1px solid var(--accent); border-radius: 8px; padding: 1rem;">
+                        <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 0.5rem;"><strong style="color: var(--accent);">Auto-Export Settings:</strong></p>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; cursor: pointer;">
+                            <input type="checkbox" id="autoExportEnabled" onchange="toggleAutoExport()" style="width: 18px; height: 18px;">
+                            <span style="color: var(--text);">Enable Daily Auto-Export (at midnight)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="autoDeleteEnabled" onchange="saveExportSettings()" style="width: 18px; height: 18px;">
+                            <span style="color: var(--text);">Auto-delete data older than</span>
+                            <input type="number" id="deleteAfterDays" value="30" min="7" max="365" style="width: 70px; padding: 0.25rem 0.5rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 4px; color: var(--text);" onchange="saveExportSettings()">
+                            <span style="color: var(--text);">days</span>
+                        </label>
+                        <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 0.75rem;">💾 Export location: <span id="exportPathDisplay" style="color: var(--accent);">Not configured</span></p>
+                        <button onclick="configureExportPath()" class="btn btn-secondary" style="margin-top: 0.75rem; padding: 0.5rem 1rem; font-size: 0.85rem;">⚙️ Configure Export Folder</button>
                     </div>
                 </div>
             </div>
@@ -636,39 +661,261 @@
             }
         }
 
-        function exportToExcel() {
+        // Export Configuration
+        let exportConfig = JSON.parse(localStorage.getItem('exportConfig')) || {
+            autoExportEnabled: false,
+            autoDeleteEnabled: false,
+            deleteAfterDays: 30,
+            exportPath: '',
+            lastExportDate: null
+        };
+        
+        // Save export settings
+        function saveExportSettings() {
+            exportConfig.autoExportEnabled = document.getElementById('autoExportEnabled')?.checked || false;
+            exportConfig.autoDeleteEnabled = document.getElementById('autoDeleteEnabled')?.checked || false;
+            exportConfig.deleteAfterDays = parseInt(document.getElementById('deleteAfterDays')?.value) || 30;
+            localStorage.setItem('exportConfig', JSON.stringify(exportConfig));
+        }
+        
+        // Toggle auto-export
+        function toggleAutoExport() {
+            saveExportSettings();
+            if (exportConfig.autoExportEnabled) {
+                alert('✅ Daily auto-export enabled!\n\nData will be exported automatically at midnight each day.');
+                scheduleAutoExport();
+            } else {
+                alert('Auto-export disabled.');
+            }
+        }
+        
+        // Configure export path
+        function configureExportPath() {
+            const modalHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;" id="pathModal">
+                    <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%;">
+                        <h3 style="color: var(--accent); margin-bottom: 1rem;">📁 Configure Export Folder</h3>
+                        <p style="color: var(--text-dim); margin-bottom: 1rem; font-size: 0.9rem;">Enter the full path where Excel files should be saved:</p>
+                        
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; color: var(--accent); margin-bottom: 0.5rem; font-size: 0.85rem;">FOLDER PATH</label>
+                            <input type="text" id="exportPathInput" value="${exportConfig.exportPath}" placeholder="C:\\Users\\YourName\\Documents\\VisitorLogs" style="width: 100%; padding: 0.75rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Courier New', monospace;">
+                        </div>
+                        
+                        <div style="background: rgba(255, 170, 0, 0.1); border-left: 3px solid var(--warning); padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                            <p style="color: var(--text); font-size: 0.85rem; line-height: 1.6;">
+                                <strong style="color: var(--warning);">⚠️ Important:</strong><br>
+                                • Use double backslashes (\\\\) for Windows paths<br>
+                                • Example: C:\\\\Users\\\\Admin\\\\Documents\\\\Visitors<br>
+                                • Or use forward slashes: C:/Users/Admin/Documents/Visitors<br>
+                                • Make sure the folder exists!
+                            </p>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <button onclick="saveExportPath()" style="background: var(--accent); color: var(--primary); border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                💾 Save Path
+                            </button>
+                            <button onclick="closePathModal()" style="background: var(--secondary); color: var(--text); border: 1px solid var(--border); padding: 0.75rem; border-radius: 6px; cursor: pointer;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            document.getElementById('exportPathInput').focus();
+        }
+        
+        function saveExportPath() {
+            const path = document.getElementById('exportPathInput').value.trim();
+            if (path) {
+                exportConfig.exportPath = path;
+                localStorage.setItem('exportConfig', JSON.stringify(exportConfig));
+                document.getElementById('exportPathDisplay').textContent = path;
+                alert('✅ Export path saved!\n\n' + path);
+            }
+            closePathModal();
+        }
+        
+        function closePathModal() {
+            const modal = document.getElementById('pathModal');
+            if (modal) modal.remove();
+        }
+        
+        // Main export function
+        function exportData(range) {
             visitors = JSON.parse(localStorage.getItem('visitors')) || [];
+            
             if (visitors.length === 0) {
-                alert('No data to export');
+                alert('❌ No visitor data to export');
                 return;
             }
-
+            
+            // Filter data based on range
+            let filteredData = [];
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            switch(range) {
+                case 'today':
+                    filteredData = visitors.filter(v => {
+                        const checkInDate = new Date(v.checkInTime);
+                        return checkInDate >= today;
+                    });
+                    break;
+                    
+                case 'week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    filteredData = visitors.filter(v => {
+                        const checkInDate = new Date(v.checkInTime);
+                        return checkInDate >= weekAgo;
+                    });
+                    break;
+                    
+                case 'month':
+                    const monthAgo = new Date(today);
+                    monthAgo.setMonth(monthAgo.getMonth() - 1);
+                    filteredData = visitors.filter(v => {
+                        const checkInDate = new Date(v.checkInTime);
+                        return checkInDate >= monthAgo;
+                    });
+                    break;
+                    
+                case 'all':
+                default:
+                    filteredData = visitors;
+                    break;
+            }
+            
+            if (filteredData.length === 0) {
+                alert(`❌ No visitor data found for ${range === 'today' ? 'today' : range === 'week' ? 'this week' : range === 'month' ? 'this month' : 'the selected period'}`);
+                return;
+            }
+            
+            // Generate CSV with custom column order
             const csv = [
-                ['Visitor ID', 'Full Name', 'Phone', 'Email', 'Company', 'Host Name', 'Host Company', 'Purpose', 'Vehicle', 'Check-In Time', 'Check-Out Time', 'Status'],
-                ...visitors.map(v => [
-                    v.id,
-                    v.fullName,
-                    v.phone,
-                    v.email,
-                    v.company,
-                    v.hostName,
-                    v.hostCompany,
-                    v.purpose,
-                    v.vehicle,
-                    new Date(v.checkInTime).toLocaleString(),
-                    v.checkOutTime ? new Date(v.checkOutTime).toLocaleString() : 'N/A',
-                    v.status
-                ])
-            ].map(row => row.join(',')).join('\n');
-
-            const blob = new Blob([csv], { type: 'text/csv' });
+                // Header row - YOUR CUSTOM ORDER
+                ['Date', 'Check-In Time', 'Full Name', 'Visitor ID', 'Phone', 'Email', 'Company', 'Host Name', 'Host Company', 'Purpose', 'Vehicle', 'Check-Out Time', 'Status'],
+                // Data rows
+                ...filteredData.map(v => {
+                    const checkInDate = new Date(v.checkInTime);
+                    const checkOutDate = v.checkOutTime ? new Date(v.checkOutTime) : null;
+                    
+                    return [
+                        checkInDate.toLocaleDateString('en-GB'), // Date
+                        checkInDate.toLocaleTimeString('en-US', { hour12: false }), // Check-In Time
+                        v.fullName, // Full Name
+                        v.id, // Visitor ID
+                        v.phone, // Phone
+                        v.email || '', // Email (optional)
+                        v.company, // Company
+                        v.hostName || '', // Host Name (optional)
+                        v.hostCompany || 'Plastic Powder Coating Company LLC', // Host Company
+                        v.purpose, // Purpose
+                        v.vehicle || '', // Vehicle
+                        checkOutDate ? checkOutDate.toLocaleTimeString('en-US', { hour12: false }) : 'Still In', // Check-Out Time
+                        v.status // Status
+                    ];
+                })
+            ].map(row => row.map(cell => {
+                // Escape cells that contain commas, quotes, or newlines
+                const cellStr = String(cell);
+                if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                    return `"${cellStr.replace(/"/g, '""')}"`;
+                }
+                return cellStr;
+            }).join(',')).join('\n');
+            
+            // Generate filename
+            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            const rangeStr = range === 'today' ? 'daily' : range === 'week' ? 'weekly' : range === 'month' ? 'monthly' : 'all-history';
+            const filename = `PPC-visitors-${rangeStr}-${dateStr}.csv`;
+            
+            // Download the file
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `visitor-log-${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
             URL.revokeObjectURL(url);
+            
+            // Update last export date
+            exportConfig.lastExportDate = now.toISOString();
+            localStorage.setItem('exportConfig', JSON.stringify(exportConfig));
+            
+            alert(`✅ Export successful!\n\n📊 ${filteredData.length} visitor(s) exported\n📁 File: ${filename}\n\n${exportConfig.exportPath ? '💾 Saved to: ' + exportConfig.exportPath : '💾 Check your Downloads folder'}`);
+            
+            // Auto-delete old data if enabled
+            if (exportConfig.autoDeleteEnabled && range === 'today') {
+                autoDeleteOldData();
+            }
         }
+        
+        // Auto-delete old data
+        function autoDeleteOldData() {
+            const days = exportConfig.deleteAfterDays;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
+            
+            visitors = JSON.parse(localStorage.getItem('visitors')) || [];
+            const initialCount = visitors.length;
+            
+            // Keep only visitors newer than cutoff date
+            visitors = visitors.filter(v => {
+                const checkInDate = new Date(v.checkInTime);
+                return checkInDate >= cutoffDate;
+            });
+            
+            const deletedCount = initialCount - visitors.length;
+            
+            if (deletedCount > 0) {
+                localStorage.setItem('visitors', JSON.stringify(visitors));
+                console.log(`Auto-deleted ${deletedCount} visitor(s) older than ${days} days`);
+            }
+        }
+        
+        // Schedule auto-export (check every hour if it's time)
+        function scheduleAutoExport() {
+            setInterval(() => {
+                if (!exportConfig.autoExportEnabled) return;
+                
+                const now = new Date();
+                const lastExport = exportConfig.lastExportDate ? new Date(exportConfig.lastExportDate) : null;
+                
+                // Check if it's midnight (00:00-00:59) and we haven't exported today
+                if (now.getHours() === 0 && (!lastExport || lastExport.toDateString() !== now.toDateString())) {
+                    console.log('Running auto-export...');
+                    exportData('today');
+                }
+            }, 3600000); // Check every hour
+        }
+        
+        // Load export settings on page load
+        function loadExportSettings() {
+            if (document.getElementById('autoExportEnabled')) {
+                document.getElementById('autoExportEnabled').checked = exportConfig.autoExportEnabled;
+                document.getElementById('autoDeleteEnabled').checked = exportConfig.autoDeleteEnabled;
+                document.getElementById('deleteAfterDays').value = exportConfig.deleteAfterDays;
+                
+                if (exportConfig.exportPath) {
+                    document.getElementById('exportPathDisplay').textContent = exportConfig.exportPath;
+                }
+                
+                if (exportConfig.autoExportEnabled) {
+                    scheduleAutoExport();
+                }
+            }
+        }
+        
+        // Call this when staff panel loads
+        window.addEventListener('DOMContentLoaded', function() {
+            if (isLoggedIn) {
+                loadExportSettings();
+            }
+        });
 
         function checkEndOfDay() {
             visitors = JSON.parse(localStorage.getItem('visitors')) || [];

@@ -361,7 +361,12 @@
                 <div id="loginAlert"></div>
                 <div class="form-group">
                     <label for="adminPassword">Password</label>
-                    <input type="password" id="adminPassword" placeholder="Enter staff password">
+                    <div style="position: relative;">
+                        <input type="password" id="adminPassword" placeholder="Enter staff password" style="padding-right: 3.5rem;">
+                        <button type="button" onclick="togglePassword('adminPassword', 'loginEye')" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.5rem; color: var(--accent); padding: 0.5rem;">
+                            <span id="loginEye">👁️</span>
+                        </button>
+                    </div>
                 </div>
                 <button onclick="staffLogin()" class="btn" style="width: 100%;">Login</button>
                 <p style="color: var(--text-dim); margin-top: 1rem; text-align: center; font-size: 0.85rem;">
@@ -430,6 +435,47 @@
                         <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 0.75rem;">💾 Export location: <span id="exportPathDisplay" style="color: var(--accent);">Not configured</span></p>
                         <button onclick="configureExportPath()" class="btn btn-secondary" style="margin-top: 0.75rem; padding: 0.5rem 1rem; font-size: 0.85rem;">⚙️ Configure Export Folder</button>
                     </div>
+                    
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                        <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.1rem;">☁️ Google Sheets Auto-Sync</h3>
+                        
+                        <div style="background: rgba(0, 255, 136, 0.05); border: 1px solid var(--accent); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; cursor: pointer;">
+                                <input type="checkbox" id="googleSheetsEnabled" onchange="toggleGoogleSheets()" style="width: 18px; height: 18px;">
+                                <span style="color: var(--text); font-weight: 600;">Enable Google Sheets Auto-Sync</span>
+                            </label>
+                            
+                            <div id="googleSheetsConfig" style="display: none;">
+                                <div style="margin-bottom: 1rem;">
+                                    <label style="display: block; margin-bottom: 0.5rem; color: var(--accent); font-size: 0.85rem;">SPREADSHEET ID</label>
+                                    <input type="text" id="spreadsheetId" placeholder="From Google Sheets URL" style="width: 100%; padding: 0.75rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                                </div>
+                                
+                                <div style="margin-bottom: 1rem;">
+                                    <label style="display: block; margin-bottom: 0.5rem; color: var(--accent); font-size: 0.85rem;">SHEET NAME</label>
+                                    <input type="text" id="sheetName" value="Visitors" style="width: 100%; padding: 0.75rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem;">
+                                </div>
+                                
+                                <div style="margin-bottom: 1rem;">
+                                    <label style="display: block; margin-bottom: 0.5rem; color: var(--accent); font-size: 0.85rem;">API KEY</label>
+                                    <div style="position: relative;">
+                                        <input type="password" id="apiKey" placeholder="Your Google Sheets API Key" style="width: 100%; padding: 0.75rem 3rem 0.75rem 0.75rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                                        <button type="button" onclick="togglePassword('apiKey', 'apiEye')" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.3rem; color: var(--accent); padding: 0.5rem;">
+                                            <span id="apiEye">👁️</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <button onclick="saveGoogleSheetsConfig()" class="btn" style="width: 100%; padding: 0.875rem;">💾 Save Configuration</button>
+                            </div>
+                            
+                            <div id="googleSheetsStatus" style="margin-top: 1rem; padding: 0.75rem; background: var(--secondary); border-radius: 6px; font-size: 0.85rem; color: var(--text-dim); display: none;">
+                                <strong style="color: var(--accent);">Status:</strong> <span id="syncStatus">Not configured</span>
+                            </div>
+                        </div>
+                        
+                        <button onclick="showGoogleSheetsGuide()" class="btn btn-secondary" style="width: 100%; padding: 0.75rem;">📖 Setup Guide</button>
+                    </div>
                 </div>
             </div>
 
@@ -446,7 +492,6 @@
                 <div class="card">
                     <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Visitor History</h2>
                     <div class="action-buttons" style="margin-bottom: 1.5rem;">
-                        <button onclick="exportToExcel()" class="btn btn-secondary">Export to Excel</button>
                         <button onclick="clearHistory()" class="btn btn-danger">Clear All History</button>
                     </div>
                     <div id="visitorHistory" class="visitor-list"></div>
@@ -477,15 +522,30 @@
                     <form id="passwordForm">
                         <div class="form-group">
                             <label for="currentPassword">Current Password</label>
-                            <input type="password" id="currentPassword" required>
+                            <div style="position: relative;">
+                                <input type="password" id="currentPassword" required style="padding-right: 3.5rem;">
+                                <button type="button" onclick="togglePassword('currentPassword', 'currentEye')" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.5rem; color: var(--accent); padding: 0.5rem;">
+                                    <span id="currentEye">👁️</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="newPassword">New Password</label>
-                            <input type="password" id="newPassword" required minlength="6">
+                            <div style="position: relative;">
+                                <input type="password" id="newPassword" required minlength="6" style="padding-right: 3.5rem;">
+                                <button type="button" onclick="togglePassword('newPassword', 'newEye')" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.5rem; color: var(--accent); padding: 0.5rem;">
+                                    <span id="newEye">👁️</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="confirmPassword">Confirm New Password</label>
-                            <input type="password" id="confirmPassword" required minlength="6">
+                            <div style="position: relative;">
+                                <input type="password" id="confirmPassword" required minlength="6" style="padding-right: 3.5rem;">
+                                <button type="button" onclick="togglePassword('confirmPassword', 'confirmEye')" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.5rem; color: var(--accent); padding: 0.5rem;">
+                                    <span id="confirmEye">👁️</span>
+                                </button>
+                            </div>
                         </div>
                         <button type="submit" class="btn">Change Password</button>
                     </form>
@@ -511,9 +571,31 @@
         let adminPassword = localStorage.getItem('adminPassword') || 'admin123';
         let isLoggedIn = false;
 
+        // Google Sheets Configuration
+        let googleSheetsConfig = JSON.parse(localStorage.getItem('googleSheetsConfig')) || {
+            enabled: false,
+            spreadsheetId: '',
+            sheetName: 'Visitors',
+            apiKey: ''
+        };
+
         window.addEventListener('DOMContentLoaded', function() {
             updateSystemInfo();
+            loadGoogleSheetsConfig();
         });
+
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                icon.textContent = '👁️';
+            }
+        }
 
         function staffLogin() {
             const password = document.getElementById('adminPassword').value;
@@ -524,6 +606,7 @@
                 document.getElementById('staffPanel').style.display = 'block';
                 generateUniversalQR();
                 updateDashboard();
+                loadExportSettings();
             } else {
                 showAlert('loginAlert', 'error', 'Incorrect password');
             }
@@ -670,7 +753,6 @@
             lastExportDate: null
         };
         
-        // Save export settings
         function saveExportSettings() {
             exportConfig.autoExportEnabled = document.getElementById('autoExportEnabled')?.checked || false;
             exportConfig.autoDeleteEnabled = document.getElementById('autoDeleteEnabled')?.checked || false;
@@ -678,7 +760,6 @@
             localStorage.setItem('exportConfig', JSON.stringify(exportConfig));
         }
         
-        // Toggle auto-export
         function toggleAutoExport() {
             saveExportSettings();
             if (exportConfig.autoExportEnabled) {
@@ -689,7 +770,6 @@
             }
         }
         
-        // Configure export path
         function configureExportPath() {
             const modalHTML = `
                 <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;" id="pathModal">
@@ -699,16 +779,16 @@
                         
                         <div style="margin-bottom: 1rem;">
                             <label style="display: block; color: var(--accent); margin-bottom: 0.5rem; font-size: 0.85rem;">FOLDER PATH</label>
-                            <input type="text" id="exportPathInput" value="${exportConfig.exportPath}" placeholder="C:\\Users\\YourName\\Documents\\VisitorLogs" style="width: 100%; padding: 0.75rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Courier New', monospace;">
+                            <input type="text" id="exportPathInput" value="${exportConfig.exportPath}" placeholder="Z:\\Jashni\\" style="width: 100%; padding: 0.75rem; background: var(--secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Courier New', monospace;">
                         </div>
                         
                         <div style="background: rgba(255, 170, 0, 0.1); border-left: 3px solid var(--warning); padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
                             <p style="color: var(--text); font-size: 0.85rem; line-height: 1.6;">
                                 <strong style="color: var(--warning);">⚠️ Important:</strong><br>
                                 • Use double backslashes (\\\\) for Windows paths<br>
-                                • Example: C:\\\\Users\\\\Admin\\\\Documents\\\\Visitors<br>
-                                • Or use forward slashes: C:/Users/Admin/Documents/Visitors<br>
-                                • Make sure the folder exists!
+                                • Example: Z:\\\\Jashni\\\\<br>
+                                • Or use forward slashes: Z:/Jashni/<br>
+                                • Files download to Downloads, then move manually
                             </p>
                         </div>
                         
@@ -743,7 +823,6 @@
             if (modal) modal.remove();
         }
         
-        // Main export function
         function exportData(range) {
             visitors = JSON.parse(localStorage.getItem('visitors')) || [];
             
@@ -752,7 +831,6 @@
                 return;
             }
             
-            // Filter data based on range
             let filteredData = [];
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -794,33 +872,29 @@
                 return;
             }
             
-            // Generate CSV with custom column order
             const csv = [
-                // Header row - YOUR CUSTOM ORDER
                 ['Date', 'Check-In Time', 'Full Name', 'Visitor ID', 'Phone', 'Email', 'Company', 'Host Name', 'Host Company', 'Purpose', 'Vehicle', 'Check-Out Time', 'Status'],
-                // Data rows
                 ...filteredData.map(v => {
                     const checkInDate = new Date(v.checkInTime);
                     const checkOutDate = v.checkOutTime ? new Date(v.checkOutTime) : null;
                     
                     return [
-                        checkInDate.toLocaleDateString('en-GB'), // Date
-                        checkInDate.toLocaleTimeString('en-US', { hour12: false }), // Check-In Time
-                        v.fullName, // Full Name
-                        v.id, // Visitor ID
-                        v.phone, // Phone
-                        v.email || '', // Email (optional)
-                        v.company, // Company
-                        v.hostName || '', // Host Name (optional)
-                        v.hostCompany || 'Plastic Powder Coating Company LLC', // Host Company
-                        v.purpose, // Purpose
-                        v.vehicle || '', // Vehicle
-                        checkOutDate ? checkOutDate.toLocaleTimeString('en-US', { hour12: false }) : 'Still In', // Check-Out Time
-                        v.status // Status
+                        checkInDate.toLocaleDateString('en-GB'),
+                        checkInDate.toLocaleTimeString('en-US', { hour12: false }),
+                        v.fullName,
+                        v.id,
+                        v.phone,
+                        v.email || '',
+                        v.company,
+                        v.hostName || '',
+                        v.hostCompany || 'Plastic Powder Coating Company LLC',
+                        v.purpose,
+                        v.vehicle || '',
+                        checkOutDate ? checkOutDate.toLocaleTimeString('en-US', { hour12: false }) : 'Still In',
+                        v.status
                     ];
                 })
             ].map(row => row.map(cell => {
-                // Escape cells that contain commas, quotes, or newlines
                 const cellStr = String(cell);
                 if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
                     return `"${cellStr.replace(/"/g, '""')}"`;
@@ -828,17 +902,10 @@
                 return cellStr;
             }).join(',')).join('\n');
             
-            // Generate filename (fixed name, no date)
             const rangeStr = range === 'today' ? 'daily' : range === 'week' ? 'weekly' : range === 'month' ? 'monthly' : 'all-history';
             const filename = `PPC-visitors-${rangeStr}-2026.xlsx`;
             
-            // Download the file
             const blob = new Blob([csv], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;' });
-            ```
-            
-            **Your folder path should be:**
-            ```
-            Z:\Jashni\
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -846,19 +913,16 @@
             link.click();
             URL.revokeObjectURL(url);
             
-            // Update last export date
             exportConfig.lastExportDate = now.toISOString();
             localStorage.setItem('exportConfig', JSON.stringify(exportConfig));
             
-            alert(`✅ Export successful!\n\n📊 ${filteredData.length} visitor(s) exported\n📁 File: ${filename}\n\n${exportConfig.exportPath ? '💾 Saved to: ' + exportConfig.exportPath : '💾 Check your Downloads folder'}`);
+            alert(`✅ Export successful!\n\n📊 ${filteredData.length} visitor(s) exported\n📁 File: ${filename}\n\n${exportConfig.exportPath ? '💾 Move to: ' + exportConfig.exportPath : '💾 Check your Downloads folder'}`);
             
-            // Auto-delete old data if enabled
             if (exportConfig.autoDeleteEnabled && range === 'today') {
                 autoDeleteOldData();
             }
         }
         
-        // Auto-delete old data
         function autoDeleteOldData() {
             const days = exportConfig.deleteAfterDays;
             const cutoffDate = new Date();
@@ -867,7 +931,6 @@
             visitors = JSON.parse(localStorage.getItem('visitors')) || [];
             const initialCount = visitors.length;
             
-            // Keep only visitors newer than cutoff date
             visitors = visitors.filter(v => {
                 const checkInDate = new Date(v.checkInTime);
                 return checkInDate >= cutoffDate;
@@ -881,7 +944,6 @@
             }
         }
         
-        // Schedule auto-export (check every hour if it's time)
         function scheduleAutoExport() {
             setInterval(() => {
                 if (!exportConfig.autoExportEnabled) return;
@@ -889,15 +951,13 @@
                 const now = new Date();
                 const lastExport = exportConfig.lastExportDate ? new Date(exportConfig.lastExportDate) : null;
                 
-                // Check if it's midnight (00:00-00:59) and we haven't exported today
                 if (now.getHours() === 0 && (!lastExport || lastExport.toDateString() !== now.toDateString())) {
                     console.log('Running auto-export...');
                     exportData('today');
                 }
-            }, 3600000); // Check every hour
+            }, 3600000);
         }
         
-        // Load export settings on page load
         function loadExportSettings() {
             if (document.getElementById('autoExportEnabled')) {
                 document.getElementById('autoExportEnabled').checked = exportConfig.autoExportEnabled;
@@ -913,13 +973,136 @@
                 }
             }
         }
-        
-        // Call this when staff panel loads
-        window.addEventListener('DOMContentLoaded', function() {
-            if (isLoggedIn) {
-                loadExportSettings();
+
+        // Google Sheets Functions
+        function toggleGoogleSheets() {
+            const enabled = document.getElementById('googleSheetsEnabled').checked;
+            const configDiv = document.getElementById('googleSheetsConfig');
+            const statusDiv = document.getElementById('googleSheetsStatus');
+            
+            if (enabled) {
+                configDiv.style.display = 'block';
+                statusDiv.style.display = 'block';
+            } else {
+                configDiv.style.display = 'none';
+                statusDiv.style.display = 'none';
+                
+                googleSheetsConfig.enabled = false;
+                localStorage.setItem('googleSheetsConfig', JSON.stringify(googleSheetsConfig));
             }
-        });
+        }
+
+        function saveGoogleSheetsConfig() {
+            const config = {
+                enabled: true,
+                spreadsheetId: document.getElementById('spreadsheetId').value.trim(),
+                sheetName: document.getElementById('sheetName').value.trim() || 'Visitors',
+                apiKey: document.getElementById('apiKey').value.trim()
+            };
+            
+            if (!config.spreadsheetId || !config.apiKey) {
+                alert('❌ Please enter both Spreadsheet ID and API Key');
+                return;
+            }
+            
+            localStorage.setItem('googleSheetsConfig', JSON.stringify(config));
+            googleSheetsConfig = config;
+            
+            document.getElementById('syncStatus').textContent = 'Configured ✅';
+            document.getElementById('syncStatus').style.color = 'var(--accent)';
+            
+            alert('✅ Google Sheets configured!\n\nAll new visitor check-ins will automatically sync to your sheet.');
+        }
+
+        function loadGoogleSheetsConfig() {
+            if (googleSheetsConfig.enabled) {
+                document.getElementById('googleSheetsEnabled').checked = true;
+                document.getElementById('spreadsheetId').value = googleSheetsConfig.spreadsheetId;
+                document.getElementById('sheetName').value = googleSheetsConfig.sheetName;
+                document.getElementById('apiKey').value = googleSheetsConfig.apiKey;
+                document.getElementById('googleSheetsConfig').style.display = 'block';
+                document.getElementById('googleSheetsStatus').style.display = 'block';
+                document.getElementById('syncStatus').textContent = 'Configured ✅';
+                document.getElementById('syncStatus').style.color = 'var(--accent)';
+            }
+        }
+
+        function showGoogleSheetsGuide() {
+            const guideHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999; overflow-y: auto; padding: 2rem;" id="guideModal" onclick="if(event.target.id==='guideModal') closeGuideModal()">
+                    <div style="background: var(--card-bg); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                        <h2 style="color: var(--accent); margin-bottom: 1.5rem;">📖 Google Sheets Setup Guide</h2>
+                        
+                        <div style="background: var(--secondary); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.1rem;">Step 1: Create Google Sheet</h3>
+                            <ol style="color: var(--text); line-height: 2; padding-left: 1.5rem;">
+                                <li>Go to <a href="https://sheets.google.com" target="_blank" style="color: var(--accent);">Google Sheets</a></li>
+                                <li>Create a new spreadsheet</li>
+                                <li>Name it: <strong>PPC Visitors 2026</strong></li>
+                                <li>In row 1, add the column headers (see below)</li>
+                            </ol>
+                        </div>
+                        
+                        <div style="background: var(--secondary); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.1rem;">Step 2: Add Column Headers</h3>
+                            <p style="color: var(--text-dim); margin-bottom: 0.5rem;">Copy these headers to row 1 (A1 to M1):</p>
+                            <div style="background: var(--primary); padding: 1rem; border-radius: 6px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.75rem; color: var(--accent);">
+                                Date | Check-In Time | Full Name | Visitor ID | Phone | Email | Company | Host Name | Host Company | Purpose | Vehicle | Check-Out Time | Status
+                            </div>
+                        </div>
+                        
+                        <div style="background: var(--secondary); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.1rem;">Step 3: Get Spreadsheet ID</h3>
+                            <p style="color: var(--text); margin-bottom: 0.5rem;">From your sheet URL:</p>
+                            <div style="background: var(--primary); padding: 1rem; border-radius: 6px; margin-bottom: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.7rem; color: var(--text-dim); word-break: break-all;">
+                                https://docs.google.com/spreadsheets/d/<span style="color: var(--accent); font-weight: bold;">1AbCdEfGhIjKlMnOpQrStUvWxYz</span>/edit
+                            </div>
+                            <p style="color: var(--warning); font-size: 0.85rem;">Copy the highlighted part (between /d/ and /edit)</p>
+                        </div>
+                        
+                        <div style="background: var(--secondary); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.1rem;">Step 4: Get API Key</h3>
+                            <ol style="color: var(--text); line-height: 2; padding-left: 1.5rem;">
+                                <li>Go to <a href="https://console.cloud.google.com" target="_blank" style="color: var(--accent);">Google Cloud Console</a></li>
+                                <li>Create a project (or use existing)</li>
+                                <li>Enable <strong>Google Sheets API</strong></li>
+                                <li>Create credentials → API Key</li>
+                                <li>Copy the API key</li>
+                            </ol>
+                        </div>
+                        
+                        <div style="background: var(--secondary); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                            <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.1rem;">Step 5: Make Sheet Public</h3>
+                            <ol style="color: var(--text); line-height: 2; padding-left: 1.5rem;">
+                                <li>Click <strong>Share</strong> button in Google Sheets</li>
+                                <li>Click "Anyone with the link"</li>
+                                <li>Change to <strong>Editor</strong></li>
+                                <li>Click <strong>Done</strong></li>
+                            </ol>
+                        </div>
+                        
+                        <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                            <p style="color: var(--text); font-size: 0.9rem; line-height: 1.8;">
+                                <strong style="color: var(--accent);">✅ After Setup:</strong><br>
+                                • Enter Spreadsheet ID in Staff Portal<br>
+                                • Enter Sheet Name (usually "Visitors")<br>
+                                • Enter API Key<br>
+                                • Click "Save Configuration"<br>
+                                • Every check-in will auto-sync! 🎉
+                            </p>
+                        </div>
+                        
+                        <button onclick="closeGuideModal()" class="btn" style="width: 100%;">Got It!</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', guideHTML);
+        }
+
+        function closeGuideModal() {
+            const modal = document.getElementById('guideModal');
+            if (modal) modal.remove();
+        }
 
         function checkEndOfDay() {
             visitors = JSON.parse(localStorage.getItem('visitors')) || [];
@@ -929,11 +1112,7 @@
                 alert('✅ All visitors have checked out!');
                 return;
             }
-        
-            // Track selected visitors
-            let selectedVisitors = new Set();
-        
-            // Create modal for manual check-out
+
             const modalHTML = `
                 <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;" id="eodModal">
                     <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; max-width: 650px; max-height: 85vh; overflow-y: auto;">
@@ -984,7 +1163,7 @@
             
             document.body.insertAdjacentHTML('beforeend', modalHTML);
         }
-        
+
         function toggleSelectAll() {
             const selectAllCheckbox = document.getElementById('selectAllCheckbox');
             const checkboxes = document.querySelectorAll('.visitor-checkbox');
@@ -995,14 +1174,13 @@
             
             updateSelection();
         }
-        
+
         function updateSelection() {
             const checkboxes = document.querySelectorAll('.visitor-checkbox');
             const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
             
             document.getElementById('selectedCount').textContent = selectedCount;
             
-            // Update select all checkbox state
             const selectAllCheckbox = document.getElementById('selectAllCheckbox');
             const allChecked = Array.from(checkboxes).every(cb => cb.checked);
             const someChecked = Array.from(checkboxes).some(cb => cb.checked);
@@ -1010,7 +1188,7 @@
             selectAllCheckbox.checked = allChecked;
             selectAllCheckbox.indeterminate = someChecked && !allChecked;
         }
-        
+
         function checkOutSelected() {
             const checkboxes = document.querySelectorAll('.visitor-checkbox:checked');
             const selectedIds = Array.from(checkboxes).map(cb => cb.value);
@@ -1047,7 +1225,7 @@
                 displayCurrentVisitors();
             }
         }
-        
+
         function checkOutAllVisitors() {
             visitors = JSON.parse(localStorage.getItem('visitors')) || [];
             const stillIn = visitors.filter(v => v.status === 'IN');
@@ -1075,30 +1253,7 @@
                 displayCurrentVisitors();
             }
         }
-        
-        function manualCheckOut(visitorId) {
-            if (!confirm('Confirm manual check-out for this visitor?')) {
-                return;
-            }
-            
-            visitors = JSON.parse(localStorage.getItem('visitors')) || [];
-            const visitor = visitors.find(v => v.id === visitorId);
-            
-            if (visitor) {
-                visitor.checkOutTime = new Date().toISOString();
-                visitor.status = 'OUT';
-                localStorage.setItem('visitors', JSON.stringify(visitors));
-                
-                alert(`✅ ${visitor.fullName} has been checked out manually.`);
-                closeEODModal();
-                updateDashboard();
-                
-                if (document.getElementById('current').classList.contains('active')) {
-                    displayCurrentVisitors();
-                }
-            }
-        }
-        
+
         function closeEODModal() {
             const modal = document.getElementById('eodModal');
             if (modal) {
@@ -1116,7 +1271,6 @@
             }
         }
 
-        // Password Change
         document.getElementById('passwordForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -1155,8 +1309,6 @@
             document.getElementById('currentCount').textContent = visitors.filter(v => v.status === 'IN').length;
             document.getElementById('storageSize').textContent = (storageBytes / 1024).toFixed(2) + ' KB';
         }
-        
-        
 
         function showAlert(elementId, type, message) {
             const alertDiv = document.getElementById(elementId);

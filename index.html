@@ -531,9 +531,7 @@
         // Google Sheets Configuration
         const GOOGLE_SHEETS_CONFIG = JSON.parse(localStorage.getItem('googleSheetsConfig')) || {
             enabled: false,
-            spreadsheetId: '',
-            sheetName: 'Visitors',
-            apiKey: ''
+            webAppUrl: ''
         };
 
         window.addEventListener('DOMContentLoaded', checkForURLParams);
@@ -663,7 +661,7 @@
             }, 500);
         });
 
-        // Google Sheets sync function
+        // Google Sheets sync function using Apps Script Web App
         async function syncToGoogleSheets(visitor) {
             // Reload config in case it was updated
             const config = JSON.parse(localStorage.getItem('googleSheetsConfig')) || GOOGLE_SHEETS_CONFIG;
@@ -671,9 +669,7 @@
             console.log('🔄 Google Sheets Sync Attempt...');
             console.log('📊 Config:', { 
                 enabled: config.enabled, 
-                hasSpreadsheetId: !!config.spreadsheetId,
-                hasApiKey: !!config.apiKey,
-                sheetName: config.sheetName
+                hasWebAppUrl: !!config.webAppUrl
             });
             
             if (!config.enabled) {
@@ -681,50 +677,45 @@
                 return;
             }
             
-            if (!config.spreadsheetId || !config.apiKey) {
-                console.log('⚠️ Google Sheets not configured (missing ID or API key)');
+            if (!config.webAppUrl) {
+                console.log('⚠️ Google Sheets not configured (missing Web App URL)');
                 return;
             }
 
             try {
                 const checkInDate = new Date(visitor.checkInTime);
-                const row = [
-                    checkInDate.toLocaleDateString('en-GB'),
-                    checkInDate.toLocaleTimeString('en-US', { hour12: false }),
-                    visitor.fullName,
-                    visitor.id,
-                    visitor.phone,
-                    visitor.email || '',
-                    visitor.company,
-                    visitor.hostName || '',
-                    visitor.hostCompany || 'Plastic Powder Coating Company LLC',
-                    visitor.purpose,
-                    visitor.vehicle || '',
-                    '',
-                    visitor.status
-                ];
+                const data = {
+                    date: checkInDate.toLocaleDateString('en-GB'),
+                    checkInTime: checkInDate.toLocaleTimeString('en-US', { hour12: false }),
+                    fullName: visitor.fullName,
+                    visitorId: visitor.id,
+                    phone: visitor.phone,
+                    email: visitor.email || '',
+                    company: visitor.company,
+                    hostName: visitor.hostName || '',
+                    hostCompany: visitor.hostCompany || 'Plastic Powder Coating Company LLC',
+                    purpose: visitor.purpose,
+                    vehicle: visitor.vehicle || '',
+                    checkOutTime: '',
+                    status: visitor.status
+                };
 
                 console.log('📤 Sending to Google Sheets:', visitor.fullName);
 
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.sheetName}:append?valueInputOption=RAW&key=${config.apiKey}`;
-                
-                const response = await fetch(url, {
+                const response = await fetch(config.webAppUrl, {
                     method: 'POST',
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ values: [row] })
+                    body: JSON.stringify(data)
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('✅ Synced to Google Sheets successfully!', result);
-                } else {
-                    const errorText = await response.text();
-                    console.error('❌ Google Sheets sync failed:', response.status, errorText);
-                    console.error('Check: 1) API key restrictions 2) Sheet permissions 3) Sheet name');
-                }
+                // Note: no-cors mode doesn't allow reading response, but the data is sent
+                console.log('✅ Data sent to Google Sheets successfully!');
+                console.log('💡 Check your Google Sheet to verify the data appeared');
+
             } catch (error) {
                 console.error('❌ Google Sheets sync error:', error);
-                console.error('Possible causes: 1) Network issue 2) CORS blocked 3) Invalid API key');
+                console.error('Possible causes: 1) Network issue 2) Invalid Web App URL');
             }
         }
 

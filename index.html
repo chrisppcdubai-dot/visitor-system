@@ -424,15 +424,15 @@
         <div id="quickCheckin" class="tab-content">
             <div class="card">
                 <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Quick Check-In</h2>
-                <p style="color: var(--text-dim); margin-bottom: 1.5rem;">For returning visitors - just enter phone number</p>
+                <p style="color: var(--text-dim); margin-bottom: 1.5rem;">For returning visitors - search by name or phone</p>
                 
                 <div class="form-group">
-                    <label for="quickPhone">Phone Number</label>
-                    <input type="tel" id="quickPhone" placeholder="Enter phone number">
+                    <label for="quickSearch">Search by Name or Phone</label>
+                    <input type="text" id="quickSearch" placeholder="Enter name or phone number">
                 </div>
-
+        
                 <button onclick="quickCheckin()" class="btn btn-block">Search & Check In</button>
-
+        
                 <div id="quickResult" style="margin-top: 1.5rem;"></div>
             </div>
         </div>
@@ -459,8 +459,10 @@
             
             <div class="badge-preview" id="badgeContent">
                 <h3>Guest Card</h3>
+                <p id="badgeDateTime" style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;"></p>
                 <h2 id="badgeName"></h2>
                 <p id="badgeCompany"></p>
+                <p id="badgeHost" style="font-weight: bold; color: #333; margin-top: 0.5rem;"></p>
                 <hr>
                 <p style="font-weight: bold;">Plastic Powder Coating Company LLC</p>
                 <div id="qrcode"></div>
@@ -471,7 +473,8 @@
             <div class="action-buttons">
                 <button onclick="downloadPDF()" class="btn">📄 Save PDF</button>
                 <button onclick="printBadge()" class="btn btn-secondary">🖨️ Save & Print</button>
-                <button onclick="sendNotifications()" class="btn btn-secondary">📧 Notify Host</button>
+                <button onclick="emailVisitor()" class="btn btn-secondary">📧 Email Visitor</button>
+                <button onclick="sendToVisitorMobile()" class="btn btn-secondary">📱 Send to Visitor</button>
                 <button onclick="closeModal()" class="btn btn-secondary">Close</button>
             </div>
         </div>
@@ -639,10 +642,19 @@
 
         // Generate badge
         function generateBadge(visitor) {
+            const checkInDate = new Date(visitor.checkInTime);
+            
             document.getElementById('badgeName').textContent = visitor.fullName;
             document.getElementById('badgeCompany').textContent = visitor.company;
+            
+            // Format: "05.02.2026 10:55"
+            const dateStr = checkInDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+            const timeStr = checkInDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+            document.getElementById('badgeDateTime').textContent = `${dateStr} ${timeStr}`;
+            
+            document.getElementById('badgeHost').textContent = visitor.hostName ? `- ${visitor.hostName}` : '-';
             document.getElementById('badgeId').textContent = visitor.id;
-
+        
             const qrDiv = document.getElementById('qrcode');
             qrDiv.innerHTML = '';
             new QRCode(qrDiv, {
@@ -650,8 +662,38 @@
                 width: 128,
                 height: 128
             });
-
+        
             document.getElementById('badgeModal').classList.add('active');
+            
+            // Auto-send notifications
+            setTimeout(() => {
+                sendNotificationsAuto(visitor);
+            }, 500);
+        }
+        
+        // Auto-send notifications (separate function)
+        function sendNotificationsAuto(visitor) {
+            if (!visitor.hostEmail && !visitor.hostPhone) {
+                console.log('No host contact info available');
+                return;
+            }
+        
+            const message = `🔔 Visitor Alert!\n\n${visitor.fullName} from ${visitor.company} is here to see you.\n\nPurpose: ${visitor.purpose}\nTime: ${new Date().toLocaleString()}\n\nPlease come to reception.\n\n- PPC Reception`;
+        
+            // WhatsApp notification
+            if (visitor.hostPhone) {
+                const whatsappUrl = `https://wa.me/${visitor.hostPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank', 'width=600,height=400');
+            }
+        
+            // Email notification  
+            if (visitor.hostEmail) {
+                const subject = `Visitor Alert: ${visitor.fullName} from ${visitor.company}`;
+                const mailtoUrl = `mailto:${visitor.hostEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+                setTimeout(() => {
+                    window.location.href = mailtoUrl;
+                }, 1000);
+            }
         }
 
         // Download PDF
@@ -716,25 +758,28 @@
 
         // Quick check-in
         async function quickCheckin() {
-            const phone = document.getElementById('quickPhone').value.trim();
-            if (!phone) {
-                alert('Please enter a phone number');
+            const search = document.getElementById('quickSearch').value.trim().toLowerCase();
+            if (!search) {
+                alert('Please enter a name or phone number');
                 return;
             }
-
+        
             await loadVisitors(); // Refresh data
-            const previousVisitor = allVisitors.find(v => v.Phone === phone);
-
+            const previousVisitor = allVisitors.find(v => 
+                v.Phone.includes(search) || 
+                v['Full Name'].toLowerCase().includes(search)
+            );
+        
             if (!previousVisitor) {
                 document.getElementById('quickResult').innerHTML = `
                     <div class="visitor-item" style="border-left-color: var(--warning);">
-                        <p style="color: var(--warning);">❌ No previous visit found for this number.</p>
+                        <p style="color: var(--warning);">❌ No previous visit found.</p>
                         <p style="color: var(--text-dim); margin-top: 0.5rem;">Please use the "New Visitor" tab to register.</p>
                     </div>
                 `;
                 return;
             }
-
+        
             // Create new visit with previous visitor data
             const hostSelect = document.getElementById('hostName');
             const hostOption = Array.from(hostSelect.options).find(opt => opt.value === previousVisitor['Host Name']);
@@ -755,7 +800,7 @@
                 checkOutTime: '',
                 status: 'IN'
             };
-
+        
             try {
                 await syncToCloud(visitor);
                 currentVisitor = visitor;
@@ -851,6 +896,31 @@
                 console.error('Checkout error:', error);
                 alert('❌ Checkout failed. Please try again.');
             }
+        }
+        // Email badge to visitor
+        function emailVisitor() {
+            if (!currentVisitor.email) {
+                alert('⚠️ No email address provided for this visitor.');
+                return;
+            }
+            
+            const subject = `Your Visitor Badge - ${currentVisitor.fullName}`;
+            const body = `Dear ${currentVisitor.fullName},\n\nThank you for visiting Plastic Powder Coating Company LLC.\n\nYour Visitor ID: ${currentVisitor.id}\nCheck-In Time: ${new Date(currentVisitor.checkInTime).toLocaleString()}\n\nPlease keep this email for your records.\n\nBest regards,\nPPC Reception`;
+            
+            window.location.href = `mailto:${currentVisitor.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+        
+        // Send badge to visitor's mobile
+        function sendToVisitorMobile() {
+            if (!currentVisitor.phone) {
+                alert('⚠️ No phone number provided for this visitor.');
+                return;
+            }
+            
+            const message = `Thank you for visiting PPC!\n\nYour Visitor ID: ${currentVisitor.id}\nCheck-In: ${new Date(currentVisitor.checkInTime).toLocaleString()}\n\nPlease show this message when leaving.\n\n- PPC Reception`;
+            
+            const whatsappUrl = `https://wa.me/${currentVisitor.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
         }
 
         // Close modal

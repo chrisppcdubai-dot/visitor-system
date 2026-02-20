@@ -660,39 +660,67 @@
             let filtered = allVisitors;
             const today = new Date();
             const todayStr = today.toLocaleDateString('en-GB');
-
+        
             if (filter === 'today') {
-                filtered = allVisitors.filter(v => v.Date === todayStr);
+                const dateMatch = v => {
+                    const vDate = v['Date '] || v['Date'] || v.Date || '';
+                    return vDate.trim() === todayStr;
+                };
+                filtered = allVisitors.filter(dateMatch);
             } else if (filter === 'week') {
                 const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
                 filtered = allVisitors.filter(v => {
-                    const vDate = new Date(v.Date.split('/').reverse().join('-'));
+                    const dateStr = (v['Date '] || v['Date'] || v.Date || '').trim();
+                    if (!dateStr) return false;
+                    const vDate = new Date(dateStr.split('/').reverse().join('-'));
                     return vDate >= weekAgo;
                 });
             } else if (filter === 'month') {
                 const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
                 filtered = allVisitors.filter(v => {
-                    const vDate = new Date(v.Date.split('/').reverse().join('-'));
+                    const dateStr = (v['Date '] || v['Date'] || v.Date || '').trim();
+                    if (!dateStr) return false;
+                    const vDate = new Date(dateStr.split('/').reverse().join('-'));
                     return vDate >= monthAgo;
                 });
             }
-
+        
             const listDiv = document.getElementById('historyList');
             const sorted = [...filtered].reverse();
-
-            listDiv.innerHTML = sorted.map(v => `
-                <div class="visitor-item ${v.Status === 'OUT' ? 'checked-out' : ''}">
-                    <div class="visitor-info">
-                        <h3>${v['Full Name']} (${v['Visitor ID']})</h3>
-                        <div class="visitor-details">
-                            <p><strong>Company:</strong> ${v.Company}</p>
-                            <p><strong>Check-In:</strong> ${v.Date} ${v['Check-In Time']}</p>
-                            ${v['Check-Out Time'] ? `<p><strong>Check-Out:</strong> ${v['Check-Out Time']}</p>` : ''}
-                            <p><strong>Status:</strong> ${v.Status}</p>
+        
+            listDiv.innerHTML = sorted.map(v => {
+                // Handle property names with spaces
+                const date = v['Date '] || v['Date'] || v.Date || 'N/A';
+                const checkInTime = v[' Check-In Time'] || v['Check-In Time'] || '';
+                const checkOutTime = v[' Check-Out Time'] || v['Check-Out Time'] || '';
+                
+                // Format times if in ISO format
+                let displayCheckIn = checkInTime;
+                if (checkInTime && checkInTime.includes('T')) {
+                    const timeObj = new Date(checkInTime);
+                    displayCheckIn = timeObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+                
+                let displayCheckOut = checkOutTime;
+                if (checkOutTime && checkOutTime.includes('T')) {
+                    const timeObj = new Date(checkOutTime);
+                    displayCheckOut = timeObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+                
+                return `
+                    <div class="visitor-item ${v.Status === 'OUT' ? 'checked-out' : ''}">
+                        <div class="visitor-info">
+                            <h3>${v['Full Name']} (${v['Visitor ID']})</h3>
+                            <div class="visitor-details">
+                                <p><strong>Company:</strong> ${v.Company}</p>
+                                <p><strong>Check-In:</strong> ${date} ${displayCheckIn}</p>
+                                ${displayCheckOut ? `<p><strong>Check-Out:</strong> ${displayCheckOut}</p>` : ''}
+                                <p><strong>Status:</strong> ${v.Status}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Display staff table
@@ -853,10 +881,146 @@
         // Check end of day
         function checkEndOfDay() {
             const current = allVisitors.filter(v => v.Status === 'IN');
+            
             if (current.length === 0) {
                 alert('✅ All visitors have checked out!\n\nEnd of day complete.');
-            } else {
-                alert(`⚠️ ${current.length} visitor(s) still checked in:\n\n${current.map(v => `• ${v['Full Name']} (${v.Company})`).join('\n')}\n\nPlease check them out before closing.`);
+                return;
+            }
+            
+            // Show end of day modal with checkout options
+            const modal = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 10000; overflow-y: auto; padding: 2rem;" onclick="if(event.target === this) closeEndOfDay()">
+                    <div style="background: var(--card-bg); border: 2px solid var(--warning); border-radius: 12px; padding: 2rem; max-width: 900px; margin: 0 auto;" onclick="event.stopPropagation()">
+                        <h2 style="color: var(--warning); margin-bottom: 1rem; text-align: center; font-family: 'JetBrains Mono', monospace;">📊 End of Day Report</h2>
+                        
+                        <p style="color: var(--text); text-align: center; margin-bottom: 1.5rem;">
+                            ⚠️ <strong>${current.length} visitor(s)</strong> still checked in
+                        </p>
+                        
+                        <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+                            <button onclick="selectAllEndOfDay()" class="btn btn-secondary">Select All</button>
+                            <button onclick="deselectAllEndOfDay()" class="btn btn-secondary">Deselect All</button>
+                        </div>
+                        
+                        <div id="endOfDayList" style="max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem;">
+                            ${current.map((v, index) => {
+                                const date = v['Date '] || v['Date'] || v.Date || 'N/A';
+                                const time = v[' Check-In Time'] || v['Check-In Time'] || '';
+                                let displayTime = time;
+                                if (time && time.includes('T')) {
+                                    const timeObj = new Date(time);
+                                    displayTime = timeObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                }
+                                
+                                return `
+                                    <div style="background: var(--secondary); border: 1px solid var(--border); border-left: 4px solid var(--warning); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 1rem;">
+                                        <input type="checkbox" id="eod_${index}" data-visitor-id="${v['Visitor ID']}" class="eod-checkbox" style="width: 20px; height: 20px; cursor: pointer;">
+                                        <label for="eod_${index}" style="flex: 1; cursor: pointer; margin: 0; color: var(--text); text-transform: none; letter-spacing: normal; font-family: 'Work Sans', sans-serif;">
+                                            <div style="font-weight: bold; font-size: 1rem; margin-bottom: 0.25rem;">${v['Full Name']}</div>
+                                            <div style="font-size: 0.85rem; color: var(--text-dim);">
+                                                ${v.Company} • Check-In: ${date} ${displayTime}
+                                            </div>
+                                        </label>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button onclick="checkoutSelectedEOD()" class="btn" style="flex: 1;">
+                                ✓ Check Out Selected
+                            </button>
+                            <button onclick="checkoutAllEOD()" class="btn btn-danger" style="flex: 1;">
+                                ✓ Check Out All
+                            </button>
+                            <button onclick="closeEndOfDay()" class="btn btn-secondary" style="flex: 1;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', `<div id="endOfDayModal">${modal}</div>`);
+        }
+        
+        // Select all end of day checkboxes
+        function selectAllEndOfDay() {
+            document.querySelectorAll('.eod-checkbox').forEach(cb => cb.checked = true);
+        }
+        
+        // Deselect all end of day checkboxes
+        function deselectAllEndOfDay() {
+            document.querySelectorAll('.eod-checkbox').forEach(cb => cb.checked = false);
+        }
+        
+        // Checkout selected visitors (end of day)
+        async function checkoutSelectedEOD() {
+            const checkboxes = document.querySelectorAll('.eod-checkbox:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('⚠️ No visitors selected');
+                return;
+            }
+            
+            if (!confirm(`Check out ${checkboxes.length} selected visitor(s)?`)) {
+                return;
+            }
+            
+            const visitorIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-visitor-id'));
+            const checkoutTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (const visitorId of visitorIds) {
+                try {
+                    await fetch(`${WEB_APP_URL}?action=checkout&visitorId=${visitorId}&checkoutTime=${checkoutTime}`);
+                    successCount++;
+                } catch (error) {
+                    console.error('Checkout error:', error);
+                    failCount++;
+                }
+            }
+            
+            alert(`✅ ${successCount} visitor(s) checked out successfully!${failCount > 0 ? `\n❌ ${failCount} failed` : ''}`);
+            closeEndOfDay();
+            await loadAllData();
+        }
+        
+        // Checkout all visitors (end of day)
+        async function checkoutAllEOD() {
+            const current = allVisitors.filter(v => v.Status === 'IN');
+            
+            if (!confirm(`⚠️ Check out ALL ${current.length} visitors?\n\nThis will end the day and close all open visits.`)) {
+                return;
+            }
+            
+            const checkoutTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (const visitor of current) {
+                try {
+                    await fetch(`${WEB_APP_URL}?action=checkout&visitorId=${visitor['Visitor ID']}&checkoutTime=${checkoutTime}`);
+                    successCount++;
+                } catch (error) {
+                    console.error('Checkout error:', error);
+                    failCount++;
+                }
+            }
+            
+            alert(`✅ End of Day Complete!\n\n${successCount} visitor(s) checked out.${failCount > 0 ? `\n❌ ${failCount} failed` : ''}`);
+            closeEndOfDay();
+            await loadAllData();
+        }
+        
+        // Close end of day modal
+        function closeEndOfDay() {
+            const modal = document.getElementById('endOfDayModal');
+            if (modal) {
+                modal.remove();
             }
         }
 
@@ -1131,6 +1295,63 @@
                 modal.remove();
             }
         }
+        
+        // Close clear menu
+        function closeClearMenu() {
+            const modal = document.getElementById('clearMenuModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // Clear history by type
+        async function clearHistory(clearType) {
+            const messages = {
+                'today': "Clear today's records?",
+                'week': "Clear this week's records?",
+                'month': "Clear this month's records?",
+                'checkedout': "Clear all checked-out visitors?",
+                'all': "⚠️ WARNING: Delete ALL visitor history?\n\nThis cannot be undone!"
+            };
+            
+            const confirmMsg = messages[clearType] || 'Delete selected records?';
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            // Extra confirmation for 'all'
+            if (clearType === 'all') {
+                if (!confirm('FINAL CONFIRMATION: Delete ALL data?')) {
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=clearVisitors&clearType=${clearType}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const successMessages = {
+                        'today': "✅ Today's records cleared!",
+                        'week': "✅ This week's records cleared!",
+                        'month': "✅ This month's records cleared!",
+                        'checkedout': "✅ All checked-out visitors cleared!",
+                        'all': "✅ All history cleared!"
+                    };
+                    
+                    alert(successMessages[clearType] || '✅ Records cleared!');
+                    closeClearMenu();
+                    await loadAllData();
+                } else {
+                    alert('❌ Failed to clear data: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Clear history error:', error);
+                alert('❌ Failed to clear data. Please try again.');
+            }
+        }
+    
     </script>
 </body>
 </html>

@@ -442,11 +442,38 @@
             <div class="card">
                 <h2 style="margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Check Out Visitor</h2>
                 
-                <div class="form-group">
-                    <label for="searchCheckout">Search by Name or Phone</label>
-                    <input type="text" id="searchCheckout" placeholder="Search..." oninput="searchForCheckout()">
+                <!-- QR Scanner Section -->
+                <div style="background: var(--secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 1rem; margin-bottom: 1rem;">📷 Scan Badge QR Code</h3>
+                    
+                    <div id="qrScanner" style="display: none; margin-bottom: 1rem;">
+                        <video id="qrVideo" style="width: 100%; max-width: 400px; border-radius: 8px; margin: 0 auto; display: block;"></video>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button onclick="startQRScanner()" class="btn" id="startScanBtn">
+                            📷 Start QR Scanner
+                        </button>
+                        <button onclick="stopQRScanner()" class="btn btn-secondary" id="stopScanBtn" style="display: none;">
+                            ⏹️ Stop Scanner
+                        </button>
+                    </div>
+                    
+                    <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 1rem;">
+                        💡 Point camera at the QR code on visitor's badge
+                    </p>
                 </div>
-
+                
+                <!-- Manual Search Section -->
+                <div style="background: var(--secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 1rem; margin-bottom: 1rem;">🔍 Manual Search</h3>
+                    
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="searchCheckout">Search by Name, Phone, or Visitor ID</label>
+                        <input type="text" id="searchCheckout" placeholder="Enter name, phone number, or visitor ID..." oninput="searchForCheckout()">
+                    </div>
+                </div>
+        
                 <div id="checkoutList"></div>
             </div>
         </div>
@@ -483,6 +510,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     
     <script>
         // Configuration
@@ -836,49 +864,84 @@
                 return;
             }
 
-            listDiv.innerHTML = currentVisitors.map(v => `
-                <div class="visitor-item">
-                    <h3>${v['Full Name']}</h3>
-                    <div class="visitor-details">
-                        <p><strong>Company:</strong> ${v.Company}</p>
-                        <p><strong>Phone:</strong> ${v.Phone}</p>
-                        <p><strong>Check-In:</strong> ${v.Date} ${v['Check-In Time']}</p>
+            listDiv.innerHTML = currentVisitors.map(v => {
+                // Handle property names with spaces
+                const date = v['Date '] || v['Date'] || v.Date || 'N/A';
+                const time = v[' Check-In Time'] || v['Check-In Time'] || '';
+                
+                // Format time if in ISO format
+                let displayTime = time;
+                if (time && time.includes('T')) {
+                    const timeObj = new Date(time);
+                    displayTime = timeObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+                
+                return `
+                    <div class="visitor-item">
+                        <h3>${v['Full Name']}</h3>
+                        <div class="visitor-details">
+                            <p><strong>Company:</strong> ${v.Company}</p>
+                            <p><strong>Phone:</strong> ${v.Phone}</p>
+                            <p><strong>Check-In:</strong> ${date} ${displayTime}</p>
+                        </div>
+                        <button onclick="checkoutVisitor('${v['Visitor ID']}')" class="btn btn-block" style="margin-top: 1rem;">
+                            Check Out
+                        </button>
                     </div>
-                    <button onclick="checkoutVisitor('${v['Visitor ID']}')" class="btn btn-block" style="margin-top: 1rem;">
-                        Check Out
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Search for checkout
         function searchForCheckout() {
-            const query = document.getElementById('searchCheckout').value.toLowerCase();
+            const query = document.getElementById('searchCheckout').value.toLowerCase().trim();
+            
+            if (!query) {
+                displayCheckoutList();
+                return;
+            }
+            
             const currentVisitors = allVisitors.filter(v => 
                 v.Status === 'IN' && 
-                (v['Full Name'].toLowerCase().includes(query) || v.Phone.includes(query))
+                (v['Full Name'].toLowerCase().includes(query) || 
+                 String(v.Phone).includes(query) ||
+                 v['Visitor ID'].toLowerCase().includes(query))
             );
-
+        
             const listDiv = document.getElementById('checkoutList');
-
+        
             if (currentVisitors.length === 0) {
                 listDiv.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding: 2rem;">No matching visitors</p>';
                 return;
             }
-
-            listDiv.innerHTML = currentVisitors.map(v => `
-                <div class="visitor-item">
-                    <h3>${v['Full Name']}</h3>
-                    <div class="visitor-details">
-                        <p><strong>Company:</strong> ${v.Company}</p>
-                        <p><strong>Phone:</strong> ${v.Phone}</p>
-                        <p><strong>Check-In:</strong> ${v.Date} ${v['Check-In Time']}</p>
+        
+            listDiv.innerHTML = currentVisitors.map(v => {
+                // Handle property names with spaces
+                const date = v['Date '] || v['Date'] || v.Date || 'N/A';
+                const time = v[' Check-In Time'] || v['Check-In Time'] || '';
+                
+                // Format time if in ISO format
+                let displayTime = time;
+                if (time && time.includes('T')) {
+                    const timeObj = new Date(time);
+                    displayTime = timeObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+                
+                return `
+                    <div class="visitor-item">
+                        <h3>${v['Full Name']}</h3>
+                        <div class="visitor-details">
+                            <p><strong>Company:</strong> ${v.Company}</p>
+                            <p><strong>Phone:</strong> ${v.Phone}</p>
+                            <p><strong>Visitor ID:</strong> ${v['Visitor ID']}</p>
+                            <p><strong>Check-In:</strong> ${date} ${displayTime}</p>
+                        </div>
+                        <button onclick="checkoutVisitor('${v['Visitor ID']}')" class="btn btn-block" style="margin-top: 1rem;">
+                            Check Out
+                        </button>
                     </div>
-                    <button onclick="checkoutVisitor('${v['Visitor ID']}')" class="btn btn-block" style="margin-top: 1rem;">
-                        Check Out
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Checkout visitor
@@ -899,33 +962,184 @@
         }
         // Email badge to visitor
         function emailVisitor() {
-            if (!currentVisitor.email) {
-                alert('⚠️ No email address provided for this visitor.');
-                return;
+            let email = currentVisitor.email;
+            
+            // If no email, ask for it
+            if (!email) {
+                email = prompt('Enter visitor email address:');
+                if (!email) {
+                    alert('⚠️ Email address required to send badge.');
+                    return;
+                }
+                // Validate email format
+                if (!email.includes('@')) {
+                    alert('⚠️ Please enter a valid email address.');
+                    return;
+                }
             }
             
             const subject = `Your Visitor Badge - ${currentVisitor.fullName}`;
             const body = `Dear ${currentVisitor.fullName},\n\nThank you for visiting Plastic Powder Coating Company LLC.\n\nYour Visitor ID: ${currentVisitor.id}\nCheck-In Time: ${new Date(currentVisitor.checkInTime).toLocaleString()}\n\nPlease keep this email for your records.\n\nBest regards,\nPPC Reception`;
             
-            window.location.href = `mailto:${currentVisitor.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         }
         
         // Send badge to visitor's mobile
         function sendToVisitorMobile() {
-            if (!currentVisitor.phone) {
-                alert('⚠️ No phone number provided for this visitor.');
-                return;
+            let phone = currentVisitor.phone;
+            
+            // If no phone, ask for it
+            if (!phone) {
+                phone = prompt('Enter visitor phone number (with country code):');
+                if (!phone) {
+                    alert('⚠️ Phone number required to send badge.');
+                    return;
+                }
             }
             
             const message = `Thank you for visiting PPC!\n\nYour Visitor ID: ${currentVisitor.id}\nCheck-In: ${new Date(currentVisitor.checkInTime).toLocaleString()}\n\nPlease show this message when leaving.\n\n- PPC Reception`;
             
-            const whatsappUrl = `https://wa.me/${currentVisitor.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+            // Convert phone to string and remove non-digits
+            const cleanPhone = String(phone).replace(/\D/g, '');
+            const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
         }
 
         // Close modal
         function closeModal() {
             document.getElementById('badgeModal').classList.remove('active');
+        }
+        
+        // QR Scanner Variables
+        let qrStream = null;
+        let qrCanvas = null;
+        let qrContext = null;
+        let qrScanning = false;
+
+        // Start QR Scanner
+        async function startQRScanner() {
+            const video = document.getElementById('qrVideo');
+            const scannerDiv = document.getElementById('qrScanner');
+            const startBtn = document.getElementById('startScanBtn');
+            const stopBtn = document.getElementById('stopScanBtn');
+            
+            try {
+                // Request camera permission
+                qrStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } // Use back camera on mobile
+                });
+                
+                video.srcObject = qrStream;
+                video.setAttribute('playsinline', true); // Required for iOS
+                video.play();
+                
+                scannerDiv.style.display = 'block';
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-block';
+                
+                // Create canvas for QR detection
+                qrCanvas = document.createElement('canvas');
+                qrContext = qrCanvas.getContext('2d');
+                
+                qrScanning = true;
+                requestAnimationFrame(scanQRCode);
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('❌ Unable to access camera.\n\nPlease:\n1. Allow camera permissions\n2. Use HTTPS connection\n3. Try using manual search instead');
+            }
+        }
+
+        // Stop QR Scanner
+        function stopQRScanner() {
+            const video = document.getElementById('qrVideo');
+            const scannerDiv = document.getElementById('qrScanner');
+            const startBtn = document.getElementById('startScanBtn');
+            const stopBtn = document.getElementById('stopScanBtn');
+            
+            qrScanning = false;
+            
+            if (qrStream) {
+                qrStream.getTracks().forEach(track => track.stop());
+                qrStream = null;
+            }
+            
+            video.srcObject = null;
+            scannerDiv.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'none';
+        }
+
+        // Scan QR Code
+        function scanQRCode() {
+            const video = document.getElementById('qrVideo');
+            
+            if (!qrScanning || video.readyState !== video.HAVE_ENOUGH_DATA) {
+                if (qrScanning) {
+                    requestAnimationFrame(scanQRCode);
+                }
+                return;
+            }
+            
+            qrCanvas.height = video.videoHeight;
+            qrCanvas.width = video.videoWidth;
+            qrContext.drawImage(video, 0, 0, qrCanvas.width, qrCanvas.height);
+            
+            const imageData = qrContext.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: 'dontInvert',
+            });
+            
+            if (code && code.data) {
+                // QR code detected!
+                const visitorId = code.data;
+                console.log('QR Code scanned:', visitorId);
+                
+                // Stop scanner
+                stopQRScanner();
+                
+                // Find and checkout visitor
+                checkoutByVisitorId(visitorId);
+                
+                return;
+            }
+            
+            if (qrScanning) {
+                requestAnimationFrame(scanQRCode);
+            }
+        }
+
+        // Checkout by Visitor ID (from QR scan)
+        async function checkoutByVisitorId(visitorId) {
+            await loadVisitors();
+            const visitor = allVisitors.find(v => v['Visitor ID'] === visitorId && v.Status === 'IN');
+            
+            if (!visitor) {
+                alert('❌ Visitor not found or already checked out.\n\nVisitor ID: ' + visitorId);
+                return;
+            }
+            
+            // Show confirmation with visitor details
+            const confirmMsg = `Check out this visitor?\n\n` +
+                `Name: ${visitor['Full Name']}\n` +
+                `Company: ${visitor.Company}\n` +
+                `Check-In: ${visitor.Date || 'N/A'} ${visitor['Check-In Time'] || ''}`;
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            try {
+                const checkoutTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+                await fetch(`${WEB_APP_URL}?action=checkout&visitorId=${visitorId}&checkoutTime=${checkoutTime}`);
+                
+                alert('✅ Visitor checked out successfully!\n\n' + visitor['Full Name']);
+                await loadVisitors();
+                displayCheckoutList();
+            } catch (error) {
+                console.error('Checkout error:', error);
+                alert('❌ Checkout failed. Please try again.');
+            }
         }
     </script>
 </body>

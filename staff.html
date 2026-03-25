@@ -526,9 +526,27 @@
                                 <p><strong>Status:</strong> ${v.Status}</p>
                             </div>
                         </div>
+                        <div class="action-buttons">
+                            <button onclick="deleteVisitor('${v['Visitor ID']}')" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.85rem;">🗑️ Delete</button>
+                        </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        async function deleteVisitor(visitorId) {
+            const visitor = allVisitors.find(v => v['Visitor ID'] === visitorId);
+            if (!visitor) return;
+            
+            if (!confirm(`⚠️ PERMANENTLY DELETE this visitor?\n\nName: ${visitor['Full Name']}\nCompany: ${visitor.Company}\n\nThis cannot be undone!`)) return;
+            
+            try {
+                await fetch(`${WEB_APP_URL}?action=deleteVisitor&visitorId=${visitorId}`);
+                await loadAllData();
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('❌ Delete failed');
+            }
         }
 
         async function viewArchived() {

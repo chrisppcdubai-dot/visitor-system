@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Portal - PPC</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Staff Portal for PPC Visitor Management System">
+    <meta name="theme-color" content="#e63946">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PPC Staff">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Work+Sans:wght@400;500;600;700&display=swap');
         
@@ -297,6 +308,26 @@
 
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered:', registration.scope);
+                        
+                        // Request notification permission
+                        if ('Notification' in window && Notification.permission === 'default') {
+                            Notification.requestPermission().then(permission => {
+                                console.log('Notification permission:', permission);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwC4oUm3holztMyeFmPbfofAyLvZDg4bHrIsWgHHsfhpAwovC32eCOuva7fqEI-vKgo2Q/exec';
         
         let isLoggedIn = false;
